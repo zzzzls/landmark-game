@@ -4,7 +4,9 @@ import MapView from "./MapView.jsx";
 import { screenMapOverlays } from "./mapOverlays.js";
 import { Roster } from "./Panels.jsx";
 import { WinnerSpotlight } from "./Results.jsx";
-import { Brand, Icon } from "./UI.jsx";
+import { Brand, Icon, Toast, useToast } from "./UI.jsx";
+import { Invite } from "./Invite.jsx";
+import { PixelCity } from "./PixelArt.jsx";
 export default function Screen({ code }) {
   const { state, error, status } = useRoom(code, "screen", "");
   const [padding, setPadding] = useState([110, 450, 50, 40]);
@@ -14,6 +16,7 @@ export default function Screen({ code }) {
   const ready = players.filter((p) => p.contributed >= 2);
   const done = ready.filter((p) => p.submitted);
   const [visibleIds, setVisibleIds] = useState(null);
+  const { toast, showToast } = useToast();
   let mapState = state || {};
   if (phase === "reveal" && visibleIds) {
     const screenPins = (state.screenPins || []).filter(player => visibleIds.includes(player.playerId));
@@ -41,7 +44,7 @@ export default function Screen({ code }) {
     };
   }, []);
   return (
-    <main className="screen-page" data-phase={phase || "connecting"}>
+    <main className="screen-page" data-phase={phase || "connecting"} data-sparse={players.length <= 3 ? "true" : undefined}>
       <MapView
         references={state?.references || []}
         pins={overlays.pins}
@@ -75,10 +78,10 @@ export default function Screen({ code }) {
           />
           <h1>
             {phase === "reveal"
-              ? "北京，有你熟悉的方向"
+              ? "这一局，北京有了答案"
               : phase === "playing"
                 ? "大家正在寻找北京"
-                : "下一位城市向导，是谁？"}
+                : "把北京，交给你的方向感"}
           </h1>
           <p>
             {phase === "reveal"
@@ -105,10 +108,10 @@ export default function Screen({ code }) {
         )}
         {phase === "lobby" && (
           <>
-            <div className="big-room-code">{code}</div>
+            <Invite onCopy={showToast} />
             <div className="screen-progress">
-              <span>{players.length} 人已加入</span>
-              <strong>{ready.length} 人已准备</strong>
+              <span><b>{players.length}</b> 人已加入</span>
+              <strong><b>{ready.length}</b> 人已准备</strong>
             </div>
             <Roster players={players} phase={phase} />
             <div className="screen-howto">
@@ -146,7 +149,7 @@ export default function Screen({ code }) {
         )}
         {phase === "reveal" && (
           <>
-            <WinnerSpotlight board={state.leaderboard} />
+            <WinnerSpotlight board={state.leaderboard} roomCode={code} />
             <ScreenResults rows={state.playerResults || []} onVisible={setVisibleIds} />
             <p className="map-legend">
               <span className="legend-dot guess" />
@@ -156,7 +159,9 @@ export default function Screen({ code }) {
             </p>
           </>
         )}
+        {players.length <= 3 && <div className="screen-city-footer" aria-hidden="true"><PixelCity /></div>}
       </aside>
+      <Toast message={toast} />
     </main>
   );
 }
@@ -175,11 +180,11 @@ export function ScreenResults({ rows, onVisible }) {
     const timer = setInterval(() => setPage(value => (value + 1) % count), 10000);
     return () => clearInterval(timer);
   }, [paused, hovered, count]);
-  return <section className="screen-results" aria-label="全场三题成绩"
+  return <section className="screen-results" aria-label="全场三题成绩" data-count={visible.length}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocus={() => setHovered(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false); }}>
     <div className="screen-result-heading"><span>排名 / 玩家</span><span>三个地点 · 距离误差</span></div>
-    {visible.map(player => <article className="screen-result-row" key={player.playerId}>
+    {visible.map(player => <article className="screen-result-row" data-rank={player.rank} key={player.playerId}>
       <div className="screen-result-rank">{player.rank || "—"}</div>
       <div className="screen-result-player"><strong>{player.name}</strong><span>{player.submitted ? formatDistance(player.totalError) : player.participating ? "未提交 · 不计分" : "未参与本局"}</span></div>
       <div className="screen-result-places">{player.results.length ? player.results.map((place, i) => <div key={place.id}><span className="screen-place-name"><b>{i + 1}</b>{place.name}</span><strong>{place.distance_m == null ? "未计分" : formatDistance(place.distance_m)}</strong></div>) : <p className="muted">本局没有分配题目</p>}</div>

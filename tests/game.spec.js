@@ -503,6 +503,10 @@ test("waiting players and screen follow create, private immediate scores, final 
     expect(screenState.current.room).toBe(code);
     await capture(host.page, "host-lobby-390");
     await capture(screen, "screen-lobby-1920");
+    const inviteQr = screen.getByRole("img", { name: "扫码加入游戏", exact: true });
+    await expect(inviteQr).toBeVisible();
+    const inviteUrl = await inviteQr.locator("title").textContent();
+    expect(new URL(inviteUrl).hostname).not.toMatch(/^(localhost|127\.|198\.1[89]\.)/);
     await contribute(first.page, "天坛");
     await contribute(first.page, "故宫");
     await contribute(second.page, "北海");
@@ -769,6 +773,7 @@ test("fixed nickname entry, guide and pixel layouts at phone and desktop sizes",
     for (const width of [360, 390, 430, 1440, 1920]) {
       await phone.page.setViewportSize({ width, height: width < 500 ? 844 : 1080 });
       await noHorizontalOverflow(phone.page);
+      await expect(phone.page.getByRole("button", { name: "加入游戏", exact: true })).toBeInViewport();
       await capture(phone.page, `home-${width}`);
     }
     await phone.page.setViewportSize({ width: 390, height: 500 });
@@ -905,6 +910,12 @@ test("thirty seeded participants remain readable across every real screen result
     });
     await expect(screen.locator(".screen-page")).toHaveAttribute("data-phase", "reveal");
     await expect.poll(() => observed.current?.playerResults?.filter(row => row.submitted).length).toBe(30);
+    // On a 1080p stage the full six-person board and its controls must fit
+    // together, rather than passing because Playwright scrolled to each row.
+    const stage = await screen.locator(".screen-rail").evaluate(el => ({ height: el.clientHeight, content: el.scrollHeight }));
+    expect(stage.content).toBeLessThanOrEqual(stage.height + 1);
+    await expect(screen.locator(".winner-spotlight")).toBeInViewport({ ratio: 1 });
+    await expect(screen.locator(".screen-pagination")).toBeInViewport({ ratio: 1 });
     await screen.getByRole("button", { name: "暂停轮播", exact: true }).click();
     const allRows = observed.current.playerResults;
     const pages = Math.ceil(allRows.length / 6);

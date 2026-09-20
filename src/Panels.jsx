@@ -21,7 +21,7 @@ export function Roster({ players = [], phase }) {
                   ? "未提交"
                   : "作答中";
         return (
-          <li key={p.id}>
+          <li key={p.id} data-ready={ready && p.connected ? "true" : undefined} data-submitted={p.submitted ? "true" : undefined}>
             <span className="avatar" style={{ "--player-color": p.color }}>
               {p.name.slice(0, 1)}
             </span>

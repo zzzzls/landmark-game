@@ -7,6 +7,7 @@
 - `src/App.jsx`：固定玩家 `/`、管理员 `/admin`、大屏 `/screen` 路由；旧 `/r/CODE` 系列链接按角色转到固定入口。
 - `src/GameRoom.jsx`：玩家与管理员共享流程；管理员复用同一连接切换房间管理/我的答题。
 - `src/Panels.jsx`、`src/UI.jsx`：出题、名单、公共控件和指引；`src/Results.jsx`：成绩单、排名落印与最佳玩家展示。
+- `src/arcade.css`：在基础 `styles.css` 后加载的城市挑战券视觉；`src/PixelArt.jsx` 提供本地原创城景和定位针角色；`src/Invite.jsx` / `src/invite.js` 用现有 `/api/lan` 和当前访问地址生成本地入场二维码，不生成 localhost 邀请码。
 - `src/MapView.jsx`、`src/mapOverlays.js`、`src/loadAmap.js`：地图生命周期、答案叠加层、SDK 加载。
 - `src/ws.js`：房间连接与操作确认；`src/session.js`：全局当前房间、换局通知及重连同步。服务端 state / 匹配 requestId 的 ack 才是成功依据。
 - `backend/main.py`：有效 API/WS 入口；`backend/rooms.py`：房间状态、抽题、计分；`backend/landmarks.py`：系统题库与搜索兜底。

@@ -46,19 +46,23 @@ function InkRoute() {
   );
 }
 
-export function WinnerSpotlight({ board = [] }) {
+export function DistanceValue({ meters }) {
+  const [value, unit] = formatDistance(meters).split(" ");
+  return <><span className="distance-number">{value}</span>{unit && <> <small className="distance-unit">{unit}</small></>}</>;
+}
+
+export function WinnerSpotlight({ board = [], roomCode }) {
   const winner = board[0];
+  const celebrating = useRevealMoment(`winner:${roomCode}`, !!winner);
   if (!winner) return null;
   return (
-    <div className="winner-spotlight">
-      <Icon name="trophy" size={32} />
-      <div>
+    <div className={`winner-spotlight${celebrating ? " is-celebrating" : ""}`}>
+      <div className="winner-emblem" aria-hidden="true"><Icon name="trophy" size={40} /><b>{winner.rank}</b></div>
+      <div className="winner-identity">
+        <span className="winner-label">{board.length > 1 ? "本局头名 · 方向感领跑" : "单人挑战 · 顺利完赛"}</span>
         <h2>{winner.name}</h2>
-        <p>
-          {board.length > 1 ? "本局头名" : "挑战完成"}
-          <span>总误差 {formatDistance(winner.totalError)}</span>
-        </p>
       </div>
+      <div className="winner-distance"><span>三题总误差</span><strong><DistanceValue meters={winner.totalError} /></strong></div>
     </div>
   );
 }
@@ -111,8 +115,9 @@ export function PersonalResults({
       aria-label="个人成绩单"
     >
       <div
-        className={`result-summary${complete ? " is-complete" : " is-incomplete"}`}
+        className={`result-summary score-ticket${complete ? " is-complete" : " is-incomplete"}`}
       >
+        <div className="score-ticket-top"><span><Icon name="flag" size={14} />{complete ? "北京记忆 · 本局战绩" : "北京记忆 · 本局回看"}</span><span>{roomCode}</span></div>
         <InkRoute />
         {complete && (
           <span className="result-sparks" aria-hidden="true">
@@ -128,12 +133,12 @@ export function PersonalResults({
               {complete ? "你的总误差" : spectator ? "本局旁观" : "本局未提交"}
             </span>
             <strong>
-              {complete ? formatDistance(you.totalError) : "未计入排名"}
+              {complete ? <DistanceValue meters={you.totalError} /> : "未计入排名"}
             </strong>
           </div>
           {complete && final && row && (
             <div className="result-seal">
-              <span>{board.length > 1 ? "北京盲猜" : "单人挑战"}</span>
+              <span>{board.length > 1 ? "本局排名" : "单人挑战"}</span>
               <span className="result-rank">
                 第 <b>{row.rank}</b> 名
               </span>

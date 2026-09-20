@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import MapView from "./MapView.jsx";
 import { WinnerSpotlight } from "./Results.jsx";
+import { Invite } from "./Invite.jsx";
 import { useRoom, navigate, phaseLabel } from "./ws.js";
 import {
   contributePins,
@@ -62,7 +63,6 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
   const [confirm, setConfirm] = useState(null);
   const [restarting, setRestarting] = useState(false);
   const restartRef = useRef(false);
-  const [lanUrl, setLanUrl] = useState("");
   const { toast, showToast } = useToast();
   const topRef = useRef(null);
   const panelRef = useRef(null);
@@ -117,15 +117,6 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
   useEffect(() => {
     if (you.submitted) { setExpanded(true); setPreview(null); setSelectedId(null); }
   }, [you.submitted]);
-  useEffect(() => {
-    if (!admin) return;
-    const controller = new AbortController();
-    fetch("/api/lan", { signal: controller.signal })
-      .then((r) => r.json())
-      .then((d) => setLanUrl(d.urls?.[0] || ""))
-      .catch(() => {});
-    return () => controller.abort();
-  }, [admin]);
   async function act(message, success) {
     try {
       const next = await send(message);
@@ -225,11 +216,6 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
       showToast("未能复制，请长按选择链接。");
     }
   }
-  const origin =
-    location.hostname === "localhost" || location.hostname === "127.0.0.1"
-      ? lanUrl || location.origin
-      : location.origin;
-  const invite = `${origin}/`;
   let title = managing
     ? "房间管理"
     : phase === "lobby"
@@ -360,7 +346,7 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
         {playing ? (
           <div className="answer-heading">
             <div className="answer-progress">
-              <div className="target-tabs" role="group" aria-label="选择题目">
+              <div className="target-tabs" role="group" aria-label="选择题目" style={{ "--active-slot": Math.max(0, targets.findIndex(t => t.id === selected?.id)) }}>
                 {targets.map((t, i) => {
                   const saved = guesses.some((g) => g.targetId === t.id);
                   return (
@@ -424,25 +410,8 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
             <>
               {phase === "lobby" && (
                 <div className="invite-section">
-                  <h2>邀请朋友来玩</h2>
-                  <div className="invite-code">
-                    {code}
-                    <button
-                      className="icon-btn"
-                      aria-label="复制邀请链接"
-                      onClick={() => copy(invite, "邀请链接已复制")}
-                    >
-                      <Icon name="copy" />
-                    </button>
-                  </div>
-                  <p className="invite-url">{invite}</p>
+                  <Invite onCopy={showToast} />
                   <div className="invite-actions">
-                    <button
-                      className="secondary"
-                      onClick={() => copy(invite, "邀请链接已复制")}
-                    >
-                      复制邀请链接
-                    </button>
                     <a
                       className="secondary"
                       href="/screen"
@@ -453,13 +422,10 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
                       打开大屏
                     </a>
                   </div>
-                  <p className="muted small">
-                    朋友的手机需和本机处于可互通的网络。
-                  </p>
                 </div>
               )}
               {phase === "reveal" && (
-                <WinnerSpotlight board={state.leaderboard} />
+                <WinnerSpotlight board={state.leaderboard} roomCode={code} />
               )}
               <div className="section-heading">
                 <h2>
