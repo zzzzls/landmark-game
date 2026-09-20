@@ -114,8 +114,13 @@ export function connectRoom({
         }
       }
     };
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       if (socket !== ws) return;
+      if (event?.code === 4409) {
+        closed = true;
+        onStatus?.("error");
+        onError?.("这个昵称已在其他页面登录，请关闭重复页面或更换昵称。");
+      }
       clearTimeout(handshake);
       ready = false;
       settle("连接已断开，正在恢复房间状态；请确认结果后再操作");

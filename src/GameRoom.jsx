@@ -50,7 +50,7 @@ function useMapPadding(topRef, panelRef) {
   }, [topRef, panelRef]);
   return padding;
 }
-export default function GameRoom({ code, name, role }) {
+export default function GameRoom({ code, name, role, onRestart, sessionReady = true }) {
   const { state, error, send, status, pending } = useRoom(code, role, name);
   const admin = role === "admin";
   const [tab, setTab] = useState(admin ? "manage" : "play");
@@ -70,11 +70,7 @@ export default function GameRoom({ code, name, role }) {
   const padding = useMapPadding(topRef, panelRef);
   const you = state?.you || {};
   const players = state?.players || [];
-  const ownResult = players
-    .filter((p) => p.submitted && p.totalError != null)
-    .sort((a, b) => a.totalError - b.totalError)
-    .map((p, index) => ({ ...p, rank: index + 1 }))
-    .find((p) => p.id === you.id);
+  const ownResult = state?.leaderboard?.find((p) => p.playerId === you.id);
   const phase = state?.phase;
   const targets = you.targets || [];
   const guesses = you.guesses || [];
@@ -87,7 +83,8 @@ export default function GameRoom({ code, name, role }) {
   const selectedGuess = guesses.find((g) => g.targetId === selected?.id);
   const placed = guesses.length;
   const managing = admin && tab === "manage";
-  const disabled = status !== "connected" || pending;
+  const disabled = status !== "connected" || !sessionReady || pending;
+  const personalRevealed = phase === "reveal" || (phase === "playing" && you.submitted);
   const ready = players.filter((p) => p.contributed >= 2);
   const submitted = ready.filter((p) => p.submitted);
   const unready = players.filter((p) => p.contributed < 2);
@@ -99,7 +96,7 @@ export default function GameRoom({ code, name, role }) {
       : phase === "reveal" && managing
         ? screenMapOverlays(state)
         : playerMapOverlays(you, phase);
-  if (phase === "reveal" && selectedId && !managing) {
+  if (personalRevealed && selectedId && !managing) {
     const results = (you.results || []).filter((r) => r.id === selectedId);
     overlays = playerMapOverlays(
       { ...you, targets: targets.filter((t) => t.id === selectedId), results },
@@ -117,6 +114,9 @@ export default function GameRoom({ code, name, role }) {
     setExpanded(phase !== "playing");
     if (phase === "playing" && hasTargets) setTab("play");
   }, [phase, hasTargets]);
+  useEffect(() => {
+    if (you.submitted) { setExpanded(true); setPreview(null); setSelectedId(null); }
+  }, [you.submitted]);
   useEffect(() => {
     if (!admin) return;
     const controller = new AbortController();
@@ -199,23 +199,11 @@ export default function GameRoom({ code, name, role }) {
     else act({ type: "reveal" });
   }
   async function playAgain() {
-    if (restartRef.current) return;
+    if (!admin || disabled || restartRef.current) return;
     restartRef.current = true;
     setRestarting(true);
     try {
-      const response = await fetch("/api/rooms", {
-        method: "POST",
-        signal: AbortSignal.timeout(10000),
-      });
-      if (!response.ok) throw new Error("新房间创建失败，请再试一次。");
-      const next = await response.json();
-      if (!next.code) throw new Error("未能获取新房间号，请重试。");
-      try {
-        sessionStorage.setItem("lg-name", name);
-      } catch {
-        /* The URL also carries the nickname. */
-      }
-      navigate(`/r/${next.code}/admin?name=${encodeURIComponent(name)}`);
+      await onRestart();
     } catch (error) {
       showToast(
         error.name === "TimeoutError"
@@ -240,7 +228,7 @@ export default function GameRoom({ code, name, role }) {
     location.hostname === "localhost" || location.hostname === "127.0.0.1"
       ? lanUrl || location.origin
       : location.origin;
-  const invite = `${origin}/r/${code}`;
+  const invite = `${origin}/`;
   let title = managing
     ? "房间管理"
     : phase === "lobby"
@@ -250,7 +238,7 @@ export default function GameRoom({ code, name, role }) {
       : phase === "reveal"
         ? "这一局，揭晓了"
         : you.submitted
-          ? "答案已提交"
+          ? "挑战完成！"
           : !hasTargets
             ? "本局旁观"
             : selected?.name || "等待题目";
@@ -261,7 +249,7 @@ export default function GameRoom({ code, name, role }) {
       : phase === "reveal"
         ? "距离越近，排名越靠前"
         : you.submitted
-          ? `${submitted.length}/${ready.length} 人已提交，等待揭晓`
+          ? `${submitted.length}/${ready.length} 人已提交，最终排名待公布`
           : !hasTargets
             ? "本局开始时未出满两题，可以观看大屏。"
             : `第 ${targets.findIndex((t) => t.id === selected?.id) + 1} 题，共 3 题 · 已确认 ${placed}/3`;
@@ -271,6 +259,7 @@ export default function GameRoom({ code, name, role }) {
       data-phase={phase || "connecting"}
     >
       <MapView
+        references={state?.references || []}
         pins={overlays.pins}
         lines={overlays.lines}
         preview={managing ? null : preview}
@@ -281,14 +270,14 @@ export default function GameRoom({ code, name, role }) {
         }}
         onPreviewClick={() => {}}
         fitKey={
-          phase === "reveal"
+          (phase === "reveal" || (personalRevealed && !managing))
             ? `reveal-${managing ? "all" : selectedId || "all"}`
             : ""
         }
         fitPadding={padding}
         onStatusChange={setMapStatus}
-        focusPoint={phase === "playing" ? [116.397, 39.91] : null}
-        focusKey={phase === "playing" ? "playing" : null}
+        focusPoint={playing ? [116.397, 39.91] : null}
+        focusKey={playing ? "playing" : null}
       />
       <header className="room-top" ref={topRef}>
         <a className="room-brand" href="/" aria-label="返回首页">
@@ -318,7 +307,7 @@ export default function GameRoom({ code, name, role }) {
         {phaseLabel(phase) || "连接房间"}
         <span className="caption-separator" />
         {playing
-          ? "拖动和缩放地图，找出你记忆中的位置"
+          ? "借助地标参照，拖动地图寻找位置"
           : phase === "reveal"
             ? "猜测与真实位置，看看差了多远"
             : "北京 · 无文字地图"}
@@ -357,7 +346,7 @@ export default function GameRoom({ code, name, role }) {
               aria-pressed={tab === "play"}
               onClick={() => {
                 setTab("play");
-                setExpanded(phase === "lobby" || phase === "reveal");
+                setExpanded(phase === "lobby" || personalRevealed);
               }}
             >
               <Icon name="pin" size={17} />
@@ -401,7 +390,10 @@ export default function GameRoom({ code, name, role }) {
         {error && (
           <div className="error room-error" role="alert">
             {error}
-            {status === "error" && <a href="/">返回首页</a>}
+            {status === "error" && <button className="text-btn" onClick={() => {
+              try { sessionStorage.removeItem("lg-name"); } catch { /* name also lives in URL */ }
+              navigate(admin ? "/admin" : "/");
+            }}>更换昵称</button>}
           </div>
         )}
         <div
@@ -435,7 +427,7 @@ export default function GameRoom({ code, name, role }) {
                     </button>
                     <a
                       className="secondary"
-                      href={`/r/${code}/screen`}
+                      href="/screen"
                       target="_blank"
                       rel="noreferrer"
                     >
@@ -476,11 +468,11 @@ export default function GameRoom({ code, name, role }) {
               )}
               {phase === "reveal" && (
                 <>
-                  <h2 className="section-title">本局排名</h2>
-                  <Leaderboard
+                  {phase === "reveal" && <h2 className="section-title">本局排名</h2>}
+                  {phase === "reveal" && <Leaderboard
                     board={state.leaderboard}
                     selfRank={ownResult?.rank}
-                  />
+                  />}
                 </>
               )}
             </>
@@ -489,6 +481,7 @@ export default function GameRoom({ code, name, role }) {
               {phase === "lobby" && (
                 <Contribute
                   you={you}
+                  references={state.references || []}
                   preview={preview}
                   disabled={disabled}
                   onPick={(p) => {
@@ -505,7 +498,7 @@ export default function GameRoom({ code, name, role }) {
                   先点地图预览，再确认位置。可以切换题目重新选择；提交后无法修改。
                 </p>
               )}
-              {phase === "playing" && (!hasTargets || you.submitted) && (
+              {phase === "playing" && !hasTargets && (
                 <div className="waiting-content">
                   <Icon name={you.submitted ? "check" : "screen"} size={32} />
                   <p>
@@ -515,16 +508,17 @@ export default function GameRoom({ code, name, role }) {
                   </p>
                   <Roster players={players} phase={phase} />
                   {!hasTargets && (
-                    <a className="secondary" href={`/r/${code}/screen`}>
+                    <a className="secondary" href="/screen">
                       观看大屏
                     </a>
                   )}
                 </div>
               )}
-              {phase === "reveal" && (
+              {personalRevealed && (
                 <>
                   <PersonalResults
                     you={you}
+                    final={phase === "reveal"}
                     row={ownResult}
                     board={state.leaderboard}
                     roomCode={code}
@@ -534,11 +528,11 @@ export default function GameRoom({ code, name, role }) {
                       setExpanded(false);
                     }}
                   />
-                  <h2 className="section-title">本局排名</h2>
-                  <Leaderboard
+                  {phase === "reveal" && <h2 className="section-title">本局排名</h2>}
+                  {phase === "reveal" && <Leaderboard
                     board={state.leaderboard}
                     selfRank={ownResult?.rank}
-                  />
+                  />}
                   {!you.submitted && (
                     <p className="muted small">
                       你未提交本局完整答案，未计入排名。
@@ -550,7 +544,7 @@ export default function GameRoom({ code, name, role }) {
           )}
         </div>
         <footer className="task-footer">
-          {phase === "reveal" ? (
+          {personalRevealed && (!managing || phase === "reveal") ? (
             <>
               <div className="result-actions">
                 <button
@@ -562,16 +556,16 @@ export default function GameRoom({ code, name, role }) {
                 >
                   {expanded ? "收起，看地图" : "查看成绩与排名"}
                 </button>
-                <button
+                {admin && phase === "reveal" && <button
                   className="primary play-again"
-                  disabled={restarting}
+                  disabled={restarting || disabled}
                   onClick={playAgain}
                 >
                   <Icon name="undo" size={18} />
-                  {restarting ? "正在创建…" : "再开一局"}
-                </button>
+                  {restarting ? "正在重开…" : "重开一局"}
+                </button>}
               </div>
-              <p className="replay-note">新建房间，保留昵称 · 邀朋友再比一场</p>
+              <p className="replay-note">{phase !== "reveal" ? "已提交，最终排名待公布" : admin ? "所有玩家将自动进入新局，重新出题" : "等待管理员开启下一局 · 无需刷新"}</p>
             </>
           ) : managing ? (
             phase === "lobby" ? (

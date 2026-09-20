@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from backend.landmarks import CATALOG
+from backend.landmarks import CATALOG, REFERENCE_LANDMARKS
 from backend.rooms import Room, haversine_m, same_place
 
 
@@ -33,9 +33,9 @@ class RoomRulesTests(unittest.TestCase):
 
     def test_system_pool_and_fallback_exclude_own_name_and_nearby_coordinates(self):
         player = self.room.add_player("玩家")
-        first, second = CATALOG[:2]
-        self.room.contribute(player, " 天 安 门 ", first["lng"], first["lat"])
-        self.room.contribute(player, "故宫附近的别名", second["lng"] + 0.0001, second["lat"])
+        first, second = CATALOG[1:3]
+        self.room.contribute(player, " 故 宫 ", first["lng"], first["lat"])
+        self.room.contribute(player, "天坛附近的别名", second["lng"] + 0.0001, second["lat"])
         self.room.pool = []  # Exercise full-catalog fallback, not only sampled pool.
         for _ in range(30):
             self.room.assign_targets()
@@ -84,7 +84,7 @@ class RoomRulesTests(unittest.TestCase):
         self.assertEqual(other.playing_players(), [host])
         self.assertEqual(len(host.targets), 3)
 
-    def test_answer_and_scoring_are_hidden_until_reveal_for_every_role(self):
+    def test_only_submitter_sees_own_answers_before_global_reveal(self):
         first, second = self.ready("甲"), self.ready("乙", offset=0.2)
         self.room.start()
         self.pin_all(first)
@@ -93,7 +93,13 @@ class RoomRulesTests(unittest.TestCase):
         for role, viewer in (("player", first), ("admin", second), ("screen", None)):
             state = self.room.snapshot(role, viewer)
             self.assertNotIn("truePins", state)
-            self.assertNotIn("results", state["you"])
+            if viewer is first:
+                self.assertEqual(state["you"]["totalError"], 0)
+                self.assertEqual(len(state["you"]["results"]), 3)
+            else:
+                self.assertNotIn("results", state["you"])
+                self.assertNotIn("totalError", state["you"])
+            self.assertNotIn("playerResults", state)
             self.assertEqual(state["leaderboard"], [])
             self.assertTrue(all(p["totalError"] is None for p in state["players"]))
             for target in state["you"].get("targets", []):
@@ -216,6 +222,42 @@ class RoomRulesTests(unittest.TestCase):
                 self.room.guess(player, player.targets[0]["id"], lng, lat)
         self.assertEqual(player.guesses, {})
         self.assertAlmostEqual(haversine_m(116, 40, 116, 40), 0)
+
+    def test_public_reference_points_are_fixed_and_available_to_all_roles(self):
+        self.assertEqual({ref["id"] for ref in REFERENCE_LANDMARKS}, {"tiananmen", "niaochao", "weststation", "guomao"})
+        for ref in REFERENCE_LANDMARKS:
+            source = next(p for p in CATALOG if p["id"] == ref["id"])
+            self.assertEqual((ref["lng"], ref["lat"]), (source["lng"], source["lat"]))
+            self.assertTrue(ref["emoji"])
+        player = self.ready()
+        for phase in ("lobby", "playing", "reveal"):
+            self.room.phase = phase
+            for role in ("player", "admin", "screen"):
+                state = self.room.snapshot(role, player if role != "screen" else None)
+                self.assertEqual(state["references"], REFERENCE_LANDMARKS)
+
+    def test_reference_contribution_names_and_nearby_aliases_are_rejected(self):
+        player = self.room.add_player("玩家")
+        for ref in REFERENCE_LANDMARKS:
+            with self.assertRaisesRegex(ValueError, "公共参照地标"):
+                self.room.contribute(player, " ".join(ref["name"]), 117.2, 40.2)
+            with self.assertRaisesRegex(ValueError, "公共参照地标"):
+                self.room.contribute(player, "参照点的别名", ref["lng"] + 0.0001, ref["lat"])
+        self.assertEqual(player.contributions, [])
+
+    def test_reference_points_cannot_be_drawn_from_pool_contributions_or_fallback(self):
+        first, second = self.ready("甲"), self.ready("乙", offset=0.2)
+        # Inject legacy/alias records to exercise final candidate filtering,
+        # independently of validation at the contribution endpoint.
+        aliases = [{**ref, "id": "alias_" + ref["id"], "name": "别名", "lng": ref["lng"] + 0.0001} for ref in REFERENCE_LANDMARKS]
+        second.contributions.extend(aliases)
+        for pool in ([], aliases, self.room.pool):
+            self.room.pool = pool
+            for _ in range(50):
+                self.room.assign_targets()
+                for player in (first, second):
+                    self.assertEqual(len(player.targets), 3)
+                    self.assertTrue(all(not same_place(target, ref) for target in player.targets for ref in REFERENCE_LANDMARKS))
 
     def test_reclaim_keeps_existing_game_progress(self):
         player = self.ready()

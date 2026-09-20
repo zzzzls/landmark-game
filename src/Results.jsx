@@ -65,6 +65,7 @@ export function WinnerSpotlight({ board = [] }) {
 
 export function PersonalResults({
   you,
+  final = true,
   row,
   board = [],
   roomCode,
@@ -72,7 +73,7 @@ export function PersonalResults({
   onSelect,
 }) {
   const results = you.results || [];
-  const complete = !!(you.submitted && row);
+  const complete = !!(you.submitted && Number.isFinite(you.totalError));
   const spectator = !(you.targets || []).length;
   const celebrating = useRevealMoment(`${roomCode}:${you.id}`, complete);
   const scored = results.filter((r) => Number.isFinite(r.distance_m));
@@ -86,18 +87,20 @@ export function PersonalResults({
     ? spectator
       ? "下一局，换你找北京"
       : "留点悬念，下次见分晓"
-    : board.length > 1 && row.rank === 1
+    : final && board.length > 1 && row?.rank === 1
       ? "这一局，你领跑北京"
       : best?.distance_m <= 300
         ? "这一针，真的很准"
-        : "北京，又熟悉了一点";
+        : "挑战完成！北京，又熟悉了一点";
   const nextChallenge = !complete
     ? spectator
       ? "看过朋友们的落点，下一局也来挑战。"
       : "下一局记得提交，让你的方向感上榜。"
-    : board.length === 1
+    : !final
+      ? "已提交，最终排名待公布。先看看你的三个落点。"
+      : board.length === 1
       ? "记住这三个点，下次让误差更小。"
-      : row.rank === 1
+      : row?.rank === 1
         ? "这次领跑，下局能守住吗？"
         : gap > 0
           ? `距上一名相差 ${formatDistance(gap)}，再近一点就能超越。`
@@ -125,10 +128,10 @@ export function PersonalResults({
               {complete ? "你的总误差" : spectator ? "本局旁观" : "本局未提交"}
             </span>
             <strong>
-              {complete ? formatDistance(row.totalError) : "未计入排名"}
+              {complete ? formatDistance(you.totalError) : "未计入排名"}
             </strong>
           </div>
-          {complete && (
+          {complete && final && row && (
             <div className="result-seal">
               <span>{board.length > 1 ? "北京盲猜" : "单人挑战"}</span>
               <span className="result-rank">

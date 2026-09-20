@@ -1,27 +1,31 @@
 ---
 name: 北京地标盲猜
-description: 米白、深墨与朱红构成的手机优先地图游戏界面
+description: 浅天空蓝、奶白、金黄与原创像素图形构成的手机优先北京地图街机
 colors:
-  paper: "#f6f3eb"
-  surface: "#fffdf8"
-  ink: "#252c2b"
-  muted: "#656a65"
-  line: "#deded3"
-  accent: "#ae3e2b"
-  accent-dark: "#8f2e20"
-  accent-soft: "#f7e8df"
-  green: "#326348"
-  error: "#a22d27"
+  paper: "#eef4f6"
+  surface: "#fffdf5"
+  ink: "#202d44"
+  muted: "#57657b"
+  line: "#b0bfd0"
+  accent: "#f5bf36"
+  accent-dark: "#ffd76b"
+  accent-soft: "#fff1bf"
+  green: "#16735d"
+  error: "#b53b35"
+  coral: "#f27c68"
+  accent-ink: "#795409"
+  input-bg: "#ffffff"
+  result-bg: "#fff5ce"
 typography:
   body:
     fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif'
     fontSize: "15px"
     lineHeight: 1.55
   display:
-    fontSize: "clamp(50px, 5.5vw, 78px)"
-    fontWeight: 650
-    lineHeight: 1.22
-    letterSpacing: "-0.04em"
+    fontSize: "clamp(42px, 5vw, 68px)"
+    fontWeight: 850
+    lineHeight: 1.25
+    letterSpacing: "0"
   task-title:
     fontSize: "24px"
     fontWeight: 650
@@ -34,20 +38,22 @@ typography:
   label:
     fontSize: "14px"
     fontWeight: 550
+  digits:
+    fontFamily: '"Beijing Pixel Digits", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif'
 rounded:
-  radius: "18px"
+  radius: "0"
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
-    textColor: "{colors.surface}"
-    rounded: "12px"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.radius}"
     padding: "13px 20px"
   button-primary-hover:
     backgroundColor: "{colors.accent-dark}"
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    rounded: "12px"
+    rounded: "{rounded.radius}"
     padding: "10px 16px"
   button-text:
     backgroundColor: "transparent"
@@ -56,112 +62,112 @@ components:
   button-icon:
     backgroundColor: "transparent"
     textColor: "{colors.muted}"
-    rounded: "50%"
+    rounded: "{rounded.radius}"
     padding: "10px"
     width: "44px"
   input:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "{colors.input-bg}"
     textColor: "{colors.ink}"
-    rounded: "10px"
+    rounded: "{rounded.radius}"
     padding: "13px 15px"
   room-tab-selected:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.accent}"
-    rounded: "7px"
+    rounded: "{rounded.radius}"
   target-selected:
-    backgroundColor: "{colors.accent-soft}"
-    textColor: "{colors.accent}"
-    rounded: "9px"
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.radius}"
   entry-panel:
     backgroundColor: "{colors.surface}"
-    rounded: "22px"
+    rounded: "{rounded.radius}"
     padding: "32px"
   result-summary:
-    backgroundColor: "{colors.accent-soft}"
-    rounded: "14px"
-    padding: "18px 16px 0"
+    backgroundColor: "{colors.result-bg}"
+    rounded: "{rounded.radius}"
+    padding: "20px 16px 0"
 ---
 
 # Design System: 北京地标盲猜
 
-<!-- IMPLEMENTATION SNAPSHOT: extracted from src/styles.css, src/UI.jsx, src/Home.jsx, src/GameRoom.jsx, src/Screen.jsx and src/Results.jsx. This document describes the implemented system; it is not runtime acceptance evidence. -->
+<!-- IMPLEMENTATION SNAPSHOT: src/styles.css, src/UI.jsx, src/PixelArt.jsx, src/Home.jsx, src/GameRoom.jsx, src/Screen.jsx and src/Results.jsx. Descriptive design documentation, not runtime acceptance evidence. -->
 
 ## Overview
 
-**Creative North Star: "城市记忆地图"**
+**Creative North Star: "像素北京街机"**
 
-米白底承托真实地图，深墨文字说明当前任务，朱红强调落点、选择与主操作。保持轻量、清楚的中文界面，让手机玩家随时知道正在猜什么、下一步按哪里；房主与现场大屏沿用同一套视觉语言。
+浅天空蓝界面与奶白面板承托真实地图，深海军蓝中文保证可读，金黄指向当前操作与关键成绩。北京城楼天际线、像素表情和方形关卡按钮带来轻松的街机感；正文保持清楚、直接，不把整个地图或中文强行像素化。
 
-本文记录当前实现。色彩与字体以 frontmatter 为提取基准，运行实现来源为 `src/styles.css`；组件内的固定尺寸并不表示已建立独立 CSS token。sidecar 的合成色阶仅供设计面板预览，不是应用中已有的色阶。
+本文记录当前实现。frontmatter 提取运行中的色彩与组件值，sidecar 保存阴影、动效和自包含组件示例；实际样式以 `src/styles.css` 为准。
 
 **Key Characteristics:**
 
-- 米白表面、深墨文字、朱红动作重点。
-- 真实无文字高德底图与清楚区分的猜测点、真实点。
-- 手机底部任务面板、桌面侧栏、独立观众大屏。
-- 短句、可触控按钮和可见的当前题与主操作。
+- 浅蓝奶白表面、金黄动作、薄荷绿完成状态，原创 SVG 像素图形。
+- 手机底部任务面板、桌面侧栏、独立横屏大屏。
+- 当前题、确认位置和下一步始终可见。
+- 提交即看个人成绩，全场揭晓才出现最终排名。
 
 ## Colors
 
 ### Primary
 
-`accent`（朱红）用于主按钮、选中状态、品牌图标与关键成绩；`accent-dark` 用于主按钮悬停和成绩文字，`accent-soft` 用于已选题目及成绩摘要。
+`accent` 为金黄，承接主按钮、题目选中和关键成绩；`accent-dark` 是较亮的悬停色，保留既有 token 名。黄色按钮使用深海军蓝文字。`accent-soft` 表示低强度强调表面。小字号强调文字使用 `accent-ink` 棕金色，避免黄色文字落在浅底上对比不足。
+
+### Secondary
+
+`green` 表示准备完成、确认成功及真实位置；`coral` 用于像素表情腮红和城楼。`error` 搭配浅红错误背景与深红文字说明，不能只靠颜色传达失败。
 
 ### Neutral
 
-`paper`（米白）是页面底色，`surface`（暖白）承托表单、面板和地图标签。`ink`（深墨）用于正文，`muted` 用于说明，`line` 分隔条目与容器。
-
-状态色保留独立语义：`green` 表示已准备、成功及真实位置；`error` 用于失败信息。玩家身份颜色由运行数据提供，不将其归为品牌主色。
+`paper` 为浅天空蓝背景，`surface` 为面板表面，`ink` 为深海军蓝正文，`muted` 为辅助说明，`line` 为分隔和描边。输入与成绩摘要使用白色与浅金色局部表面。玩家身份色来自房间数据，不属于品牌主色。
 
 ## Typography
 
-全站使用系统中文无衬线字体栈，无外部字体依赖。首页大标题是主要展示字；手机宽度不超过 860px 时改为 47px，不超过 380px 时为 41px。
+中文继续使用系统无衬线字体。首页桌面标题为 `clamp(42px, 5vw, 68px)`，手机为 `clamp(36px, 10vw, 47px)`；字重 850、行高 1.25。任务标题桌面 24px、手机 22px、窄屏 20px、短屏 19px。输入文字 16px，正文 15px，辅助说明通常 12–14px。
 
-任务标题桌面 24px、手机 22px、窄手机 20px；手机高度不超过 650px 时使用 19px。正文以 frontmatter 的 body 为基准，表单输入为 16px，辅助说明通常 12–14px。房间号、排名、误差和题号使用等宽数字或明确字距；长地点名与昵称允许换行，不靠截断隐藏关键信息。
+本地原创 `src/assets/pixel-digits.ttf` 提供 `Beijing Pixel Digits`，仅覆盖数字及 `-./`，用于首页规则计数、题号、房间号、总误差和排名；其余字符回退系统字体，不需要外部字体服务。长昵称与地点名允许换行，不能通过截断隐藏三题内容。
 
 ## Layout
 
-首页桌面为介绍与入口两列，内容最大宽度 1080px；手机改为最大宽度 480px 的单列。入口表单维持完整标签和单一提交动作。
+三个固定入口分别是 `/` 玩家、`/admin` 管理员、`/screen` 大屏。等待页桌面内容最大宽度 1100px，介绍与操作区按 1.25:0.85 分栏；手机为最大 480px 单列。没有房间时明确等待，首次玩家仅填写昵称，不出现房间号或建房表单。
 
-玩家与房主使用同一全屏地图工作区（100dvh）。宽度大于 860px 时，任务面板在左侧，宽 380px；手机使用贴底全宽面板，标题、题目切换与页脚操作不随正文滚走。展开面板最大高度 60dvh，收起为 48dvh；短手机分别为 68dvh、58dvh。正文独立滚动，收起后隐藏并退出交互。安全区通过现有 `--safe-t` / `--safe-b` 处理。
+游戏工作区为 100dvh。大于 860px 时左侧任务面板宽 380px；手机改为全宽贴底面板，标题、关卡选择和页脚操作不随正文滚动。展开高度通常不超过 60dvh，收起不超过 48dvh；短屏分别为 68dvh 与 58dvh。保留安全区与独立滚动，地图避让按实际面板尺寸测量。
 
-现场大屏有独立布局：右侧信息栏宽 `clamp(350px, 27vw, 490px)`，地图占据其余区域；窄屏信息栏转到底部，最大高度 52dvh。大屏的房间号、提交人数与排名字号更大，不直接放大玩家表单。
-
-地图避让来自实际面板测量；组件传入 CSS 顺序的 padding，地图适配层转换为高德要求的顺序。面板尺寸调整须同步检查标记、标签和版权可见性。当前没有独立 spacing token 表，不从散落的 padding 反推虚构尺度。
+大屏大厅与作答阶段沿用右侧信息栏。揭晓时右侧为 `calc(60% - 24px)`，左侧地图约四成；成绩每页最多六人，每人一行明确列出三个地点及误差。十秒自动翻页，悬停或聚焦暂缓，并有手动翻页、暂停与继续；手机大屏页改为底部最多 60dvh 面板。
 
 ## Elevation & Depth
 
-页面主要靠表面色、边框和留白分层。`--shadow` 用于桌面任务面板、现场信息栏、对话框与 toast；手机底板使用向上的浅阴影。房主选中标签和地图说明使用更轻的局部阴影。准确阴影值记录在 sidecar，避免在正文重复 token。
+像素主题使用硬阴影与清晰边框。主按钮 `0 4px 0 #b18a38`，按压下移 3px 并缩减阴影；桌面面板 `6px 6px 0 #b9c9d6`，入口与对话框可达 8px。手机底板用 `0 -5px 0 #b9c9d6` 与顶部描边区分地图。
 
-动效用于状态反馈与单次结算庆祝。完成并计入排名的个人成绩单使用路线描画（800ms）、名次落印（600ms，延迟 120ms）、数字遮罩揭示（650ms），以及限制在票据内的 8 粒朱红/金色纸屑（650ms，延迟 400ms）；庆祝状态在 1400ms 后结束。成绩文本从首帧就是服务端真实值，不做从零累加。正常可用的 sessionStorage 按房间号与玩家 ID 记录已播放状态，同标签页刷新或切换房主视图不重复庆祝。未提交者不庆祝；尊重 `prefers-reduced-motion`，启用时直接展示静态结果并取消动画和过渡。原按钮按压、预览针落下、面板展开与提交进度动效保持。
+短动效用于按钮、预览落针、面板展开及提交进度。结算保留一次性的路线描画、方形勋章落下和八粒黄色/薄荷色像素粒子；成绩从首帧显示真实值，不从零累加，也不遮罩隐藏数字。庆祝窗口为 1400ms，按房间/玩家在 sessionStorage 中去重；未提交或旁观者不庆祝。最终名次仅在全局揭晓后出现。`prefers-reduced-motion` 关闭动画及过渡。
 
 ## Shapes
 
-面板基准圆角是 `radius`。按钮采用紧凑圆角，输入框略小；手机底板只保留上方圆角。圆形只承担头像、状态点、题号和图标按钮；地图真实点用绿色空心环，猜测点用实心点，不能仅靠文字解释两者。
+所有组件统一直角，边框通常 1–2px，选择与任务槽使用明确描边；原创 SVG 的阶梯边缘承担像素特征。地图猜测点为实心菱形，真实点为薄荷绿边框菱形，配合文字和连线区分。界面控件使用原创像素图标；地图上的公共知名地标可使用指定 emoji 作为独立参考针，不代表题目答案。
 
 ## Components
 
-- **Buttons：** 主按钮承接当前明确动作，最小高度 50px；次按钮、文字按钮、图标按钮通常最小高度 44px。主按钮悬停变深，主次按钮按压下移 1px；键盘焦点有 3px 朱红描边与 3px 间隔。禁用按钮降低不透明度，并显示对应等待文案。
-- **Inputs：** 暖白表面、细边框、持续可见的标签；聚焦时朱红边框与浅色焦点环。错误在字段附近以独立可读文案呈现，搜索分别显示加载、无结果与失败。
-- **Navigation：** 首页入口用下划线表示选中；房主“房间管理 / 我的答题”用浅底分段导航。题目切换用数字和确认勾结合选中色，选中状态由 `aria-pressed` 表达。
-- **Panels：** 入口容器使用边框与留白；地图上任务面板有标题、可滚动正文及固定操作区。手机收起的是详情，当前题与主操作继续可见。
-- **Results：** 个人成绩采用浅朱红票据、路线线稿与略微倾斜的双线名次印章；总误差、真实排名与“最准一针”形成层级。最准地点和逐题明细均可点选回看；上一名差距由实际总误差相减，单人及未提交状态分别使用对应文案。排行榜突出本人，房主管理与大屏在榜单上方突出本局头名；单人显示“挑战完成”。揭晓页脚并列保留成绩/地图切换与“再开一局”，后者新建房间、保留昵称并进入新房主管理，不代表原房多轮或自动迁移其他玩家。
-- **Map markers：** 实心猜测点、绿色空心真实点、预览标签与误差连线承担游戏信息；高德底图隐藏地名，保留地图版权。这里只描述界面，不改变揭晓前后的数据隔离。
-- **Dialogs and feedback：** 指引与提前揭晓确认使用原生 `dialog`；错误使用 alert，连接反馈与 toast 使用 status。成功反馈在服务端确认后出现，断线时操作禁用。
+- **Buttons：** 主操作最小高度 50px，其他主要触控目标至少 44px；焦点使用 3px 明黄外框，禁用不透明度 .55 并保留原因文案。
+- **Inputs：** 白色输入表面、2px 边框、持续可见标签；聚焦明黄描边与硬阴影。搜索区分加载、无结果、请求失败。
+- **Navigation：** 管理员在同一身份连接中切换管理与答题；选中标签用黄线。三道题是方形关卡按钮，数字、确认勾与 `aria-pressed` 共同表达状态。
+- **Pixel art：** `UI.jsx` 的 Icon 为 24×24 原创像素 SVG；`PixelArt.jsx` 提供北京城楼天际线及 happy/waiting 像素表情。图形使用 `shapeRendering="crispEdges"`，装饰性图形对辅助技术隐藏。
+- **Results：** 个人通关面板显示真实总误差、最佳地点和逐题连线。提交后先显示“最终排名待公布”；揭晓后才显示排名。普通玩家等待下一局，只有管理员可重开；重开后所有在线入口自动换房，保留昵称并重新出题。
+- **Screen results：** 每行使用玩家 ID 作为稳定标识，显示排名、昵称、总误差和三个地点各自误差。未提交者不计分，无题旁观者显示未参与；不显示虚假零分。
+- **Map：** 使用真实无文字高德地图，保留版权标识，地图本身不做像素滤镜。视图重排后重新测量避让，避免标签落在面板后。
+- **Feedback：** 原生 dialog 提供指引和提前揭晓确认。连接中、重连、失败与无房间等待分开呈现；成功反馈必须以服务端状态为准。
 
 ## Do's and Don'ts
 
 ### Do:
 
-- Do 保留中文、当前题、下一步动作与明确等待状态。
-- Do 用真实无文字高德地图，并保持版权与关键标记可见。
-- Do 检查手机安全区、短屏、长名称、键盘焦点和减少动效偏好。
-- Do 让玩家、房主和现场大屏共享色彩与组件语言，分别适配各自布局。
+- Do 保持中文可读、触控区域足够、当前题与主操作可见。
+- Do 使用本地像素资源，保留真实地图与安全区适配。
+- Do 对长名称、短屏、软键盘和减少动态效果做实际验证。
+- Do 将个人成绩与全场排名严格区分，跟随服务端确认状态。
 
 ### Don't:
 
-- Don't 用颜色作为选中、完成或失败的唯一信息。
-- Don't 将主操作藏进折叠菜单，或让长内容挤掉操作区。
-- Don't 在服务端确认前显示操作成功，或把缺失成绩显示为零。
-- Don't 用虚构累加成绩或重复庆祝遮挡结果；不要把新建房间描述为原房续局。
-- Don't 将本文、截图或组件预览当成真实地图及完整游戏流程验收。
+- Don't 将暗色主题、旧朱红票据或系统 emoji 混回界面组件；地图公共参考点可使用明确指定的 emoji。
+- Don't 在普通玩家入口提供建房和重开操作。
+- Don't 提前暴露其他玩家的成绩与真点，或将缺失成绩显示为零。
+- Don't 将设计文档或截图当作真实地图、30 人并发与完整流程验收。

@@ -1,4 +1,4 @@
-"""Server-side Beijing landmark catalog. GCJ-02 coords stay on the server."""
+"""Beijing GCJ-02 catalog; only fixed reference coordinates are public before submission."""
 
 CATALOG = [
     {"id": "tiananmen", "name": "天安门", "lng": 116.397499, "lat": 39.908722},
@@ -26,6 +26,16 @@ CATALOG = [
     {"id": "gongwangfu", "name": "恭王府", "lng": 116.386315, "lat": 39.937222},
     {"id": "tiananmen-square", "name": "天安门广场", "lng": 116.397755, "lat": 39.903182},
     {"id": "namoc", "name": "中国美术馆", "lng": 116.410887, "lat": 39.933321},
+]
+
+
+_REFERENCE_EMOJI = {
+    "tiananmen": "🚩", "niaochao": "🏟️", "weststation": "🚉", "guomao": "🏙️",
+}
+# Fixed public orientation hints. These landmarks cannot become quiz targets.
+REFERENCE_LANDMARKS = [
+    {**place, "emoji": _REFERENCE_EMOJI[place["id"]]}
+    for place in CATALOG if place["id"] in _REFERENCE_EMOJI
 ]
 
 

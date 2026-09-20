@@ -67,7 +67,7 @@ export function Leaderboard({ board = [], selfRank }) {
     </ol>
   );
 }
-export function Contribute({ you, preview, onPick, onRemove, disabled }) {
+export function Contribute({ references = [], you, preview, onPick, onRemove, disabled }) {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState({ status: "idle", items: [] });
   const [nonce, setNonce] = useState(0);
@@ -152,7 +152,7 @@ export function Contribute({ you, preview, onPick, onRemove, disabled }) {
               {search.items.map((p, i) => (
                 <li key={`${p.name}-${i}`}>
                   <button
-                    disabled={disabled}
+                    disabled={disabled || references.some(ref => isReferencePlace(p, ref))}
                     onClick={() => {
                       onPick(p);
                       setQ("");
@@ -162,7 +162,7 @@ export function Contribute({ you, preview, onPick, onRemove, disabled }) {
                     <Icon name="pin" />
                     <span>
                       <strong>{p.name}</strong>
-                      <small>{p.address || "北京"}</small>
+                      <small>{references.some(ref => isReferencePlace(p, ref)) ? "公共参照地标，请换一个地点" : p.address || "北京"}</small>
                     </span>
                     <Icon name="arrow" size={16} />
                   </button>
@@ -207,3 +207,13 @@ export function Contribute({ you, preview, onPick, onRemove, disabled }) {
   );
 }
 export { PersonalResults } from "./Results.jsx";
+
+export function isReferencePlace(place, reference) {
+  const normalize = name => name.replace(/\s/g, "").toLowerCase();
+  if (normalize(place.name) === normalize(reference.name)) return true;
+  const rad = Math.PI / 180;
+  const lat = (place.lat - reference.lat) * rad;
+  const lng = (place.lng - reference.lng) * rad;
+  const a = Math.sin(lat / 2) ** 2 + Math.cos(place.lat * rad) * Math.cos(reference.lat * rad) * Math.sin(lng / 2) ** 2;
+  return 6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, a))) <= 50;
+}

@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from .landmarks import CATALOG
+from .landmarks import CATALOG, REFERENCE_LANDMARKS
 
 COLORS = [
     "#c45c26",
@@ -105,10 +105,12 @@ class Room:
         self.connections: list[Connection] = []
         self.created_at = time.time()
         self.lock = asyncio.Lock()
+        self.broadcast_lock = asyncio.Lock()
         self.color_i = 0
 
     def _build_pool(self) -> list[dict]:
-        picked = random.sample(CATALOG, k=min(12, len(CATALOG)))
+        eligible = [place for place in CATALOG if not any(same_place(place, ref) for ref in REFERENCE_LANDMARKS)]
+        picked = random.sample(eligible, k=min(12, len(eligible)))
         return [
             {
                 "id": f"pool_{item['id']}",
@@ -172,7 +174,7 @@ class Room:
         assignments: list[tuple[Player, list[dict]]] = []
         for p in ready:
             def eligible(item: dict, selected: list[dict]) -> bool:
-                return not any(same_place(item, other) for other in p.contributions + selected)
+                return not any(same_place(item, other) for other in p.contributions + selected + REFERENCE_LANDMARKS)
 
             pool = [c for c in self.pool if eligible(c, [])]
             random.shuffle(pool)
@@ -232,6 +234,8 @@ class Room:
             "lng": lng_f,
             "lat": lat_f,
         }
+        if any(same_place(item, ref) for ref in REFERENCE_LANDMARKS):
+            raise ValueError("这是地图上的公共参照地标，请换一个地点")
         player.contributions.append(item)
         return item
 
@@ -306,6 +310,7 @@ class Room:
         for i, p in enumerate(submitted):
             board.append(
                 {
+                    "playerId": p.id,
                     "name": p.name,
                     "color": p.color,
                     "totalError": p.total_error,
@@ -382,32 +387,49 @@ class Room:
             ]
             if self.phase in ("playing", "reveal") and player.targets:
                 payload["targets"] = [public_place(t) for t in player.targets]
-            if self.phase == "reveal" and player.targets:
-                payload["results"] = []
-                for t in player.targets:
-                    g = player.guesses.get(t["id"])
-                    payload["results"].append(
-                        {
-                            "id": t["id"],
-                            "name": t["name"],
-                            "distance_m": player.distances.get(t["id"]),
-                            "lng": t["lng"],
-                            "lat": t["lat"],
-                            "guessLng": g["lng"] if g else None,
-                            "guessLat": g["lat"] if g else None,
-                        }
-                    )
+            if (self.phase == "reveal" or player.submitted) and player.targets:
+                payload["totalError"] = player.total_error
+                payload["results"] = self.results_for(player)
         return payload
+
+    def results_for(self, player: Player) -> list[dict]:
+        return [
+            {
+                "id": t["id"], "name": t["name"],
+                "distance_m": player.distances.get(t["id"]),
+                "lng": t["lng"], "lat": t["lat"],
+                "guessLng": player.guesses.get(t["id"], {}).get("lng"),
+                "guessLat": player.guesses.get(t["id"], {}).get("lat"),
+            }
+            for t in player.targets
+        ]
+
+    def player_results(self) -> list[dict]:
+        ranks = {row["playerId"]: row["rank"] for row in self.leaderboard()}
+        rows = [
+            {
+                "playerId": p.id, "name": p.name, "color": p.color,
+                "submitted": p.submitted, "participating": p.playing(),
+                "totalError": p.total_error, "rank": ranks.get(p.id),
+                "results": self.results_for(p),
+            }
+            for p in self.players.values()
+        ]
+        return sorted(rows, key=lambda row: (row["rank"] is None, row["rank"] or 0, not row["participating"]))
+
 
     def snapshot(self, role: str, player: Optional[Player]) -> dict:
         data: dict[str, Any] = {
             "type": "state",
             "phase": self.phase,
             "room": self.code,
+            "references": [dict(ref) for ref in REFERENCE_LANDMARKS],
             "players": self.public_players(),
             "you": self.you_payload(player, role),
             "leaderboard": self.leaderboard(),
         }
+        if self.phase == "reveal" and role in ("admin", "screen"):
+            data["playerResults"] = self.player_results()
         if role == "screen":
             data["screenPins"] = self.screen_pins()
             if self.phase == "reveal":
@@ -421,6 +443,9 @@ class Room:
 class RoomManager:
     def __init__(self) -> None:
         self.rooms: dict[str, Room] = {}
+        self.current: Optional[Room] = None
+        self.successors: dict[str, str] = {}
+        self.sessions: list[Connection] = []
         self.lock = asyncio.Lock()
 
     def _new_code(self) -> str:
@@ -432,7 +457,7 @@ class RoomManager:
 
     def sweep(self) -> None:
         now = time.time()
-        dead = [c for c, r in self.rooms.items() if now - r.created_at > ROOM_TTL_S]
+        dead = [c for c, r in self.rooms.items() if now - r.created_at > ROOM_TTL_S and r is not self.current]
         for c in dead:
             self.rooms.pop(c, None)
 
@@ -442,6 +467,26 @@ class RoomManager:
         room = Room(code)
         self.rooms[code] = room
         return room
+
+    def create_current(self) -> Room:
+        if self.current is None:
+            self.current = self.create()
+        return self.current
+
+    def restart(self, code: str) -> Room:
+        if code in self.successors and self.current is not None:
+            return self.current
+        if self.current is None or self.current.code != code:
+            raise ValueError("房间已经切换，请同步当前房间")
+        if self.current.phase != "reveal":
+            raise ValueError("请先揭晓本局，再重开一局")
+        previous = self.current
+        self.current = self.create()
+        self.successors[previous.code] = self.current.code
+        return self.current
+
+    def session_snapshot(self) -> dict:
+        return {"type": "session", "room": self.current.code if self.current else None}
 
     def get(self, code: str) -> Optional[Room]:
         if not code:

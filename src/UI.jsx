@@ -1,79 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 
 const paths = {
-  pin: (
-    <>
-      <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
-      <circle cx="12" cy="10" r="2.5" />
-    </>
-  ),
-  arrow: (
-    <>
-      <path d="M4 12h16M14 6l6 6-6 6" />
-    </>
-  ),
-  back: <path d="m14 6-6 6 6 6" />,
-  check: <path d="m5 12 4 4L19 6" />,
-  close: <path d="m6 6 12 12M6 18 18 6" />,
-  help: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.5 8a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 4v.2" />
-    </>
-  ),
-  users: (
-    <>
-      <circle cx="9" cy="8" r="3" />
-      <path d="M3 21v-3a6 6 0 0 1 12 0v3m2-16a3 3 0 0 1 0 6m2 4a5 5 0 0 1 2 4v2" />
-    </>
-  ),
-  screen: (
-    <>
-      <rect x="3" y="4" width="18" height="13" rx="2" />
-      <path d="M8 21h8m-4-4v4" />
-    </>
-  ),
-  copy: (
-    <>
-      <rect x="8" y="8" width="12" height="13" rx="2" />
-      <path d="M16 8V3H3v13h5" />
-    </>
-  ),
-  search: (
-    <>
-      <circle cx="10" cy="10" r="6" />
-      <path d="m15 15 6 6" />
-    </>
-  ),
-  trophy: (
-    <>
-      <path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H3v3a5 5 0 0 0 5 5m8-8h5v3a5 5 0 0 1-5 5m-4 0v7m-5 1h10" />
-    </>
-  ),
-  chevron: <path d="m6 14 6-6 6 6" />,
-  undo: (
-    <>
-      <path d="M4 4v6h6M4 10a8 8 0 1 1 0 8" />
-    </>
-  ),
+  pin: <path d="M8 2h8v2h4v4h2v8h-2v4h-4v4h-4v-4H8v-4H6V8h2V4h0zm2 6v8h8V8z" transform="translate(-2 -1)" fillRule="evenodd" />,
+  arrow: <path d="M14 3h3v3h3v3h3v6h-3v3h-3v3h-3v-6H2V9h12z" />,
+  back: <path d="M13 3h4v4h-4v4H9v2h4v4h4v4h-4v-4H9v-4H5v-2h4V7h4z" />,
+  check: <path d="M19 4h4v4h-4v4h-4v4h-4v4H7v-4H3v-4H0V8h4v4h4v4h3v-4h4V8h4z" />,
+  close: <path d="M3 3h4v4h4v4h2V7h4V3h4v4h-4v4h-4v2h4v4h4v4h-4v-4h-4v-4h-2v4H7v4H3v-4h4v-4h4v-2H7V7H3z" />,
+  help: <path d="M6 2h12v2h4v16h-4v2H6v-2H2V4h4zm2 4v3h3V8h3v3h-3v5h3v-3h3V6zm3 12v2h3v-2z" fillRule="evenodd" />,
+  users: <path d="M5 3h7v7H5zM2 13h13v9H2zM15 4h5v6h-5zM18 13h5v9h-5z" />,
+  screen: <path d="M1 3h22v15h-9v3h5v2H5v-2h5v-3H1zm3 3v9h16V6z" fillRule="evenodd" />,
+  copy: <path d="M2 2h14v4H6v10H2zm6 6h14v14H8zm3 3v8h8v-8z" fillRule="evenodd" />,
+  search: <path d="M5 2h10v3h3v10h-3v3H5v-3H2V5h3zm1 4v8h8V6zm10 10h4v4h4v4h-4v-4h-4z" fillRule="evenodd" />,
+  trophy: <path d="M6 2h12v3h5v8h-3v3h-5v3h4v4H5v-4h4v-3H4v-3H1V5h5zm-2 6v3h2V8zm14 0v3h2V8z" fillRule="evenodd" />,
+  flag: <path d="M3 2h3v2h15v10H6v9H3zm3 4v6h6V6z" fillRule="evenodd" />,
+  chevron: <path d="M10 4h4v4h4v4h4v4h-4v-4h-4V8h-4v4H6v4H2v-4h4V8h4z" />,
+  undo: <path d="M6 2h4v5h9v3h3v9h-3v3H9v-4h9v-7h-8v5H6v-4H2V6h4z" />,
 };
 export function Icon({ name, size = 20, ...props }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      {...props}
-    >
-      {paths[name] || paths.pin}
-    </svg>
-  );
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" shapeRendering="crispEdges" aria-hidden="true" {...props}>{paths[name] || paths.pin}</svg>;
 }
 export function Brand() {
   return (
@@ -143,7 +87,7 @@ export function Guide({ open, onClose }) {
     ],
     [
       "误差越小，排名越高",
-      "三题全部完成后提交。全员提交或房主揭晓时，查看真实位置和总距离误差。",
+      "三题全部完成后提交，立即查看自己的真实位置与总误差。全员交卷或管理员揭晓后，公布最终排名。",
       "揭晓",
     ],
   ];

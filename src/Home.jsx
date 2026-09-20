@@ -1,230 +1,49 @@
 import { useState } from "react";
-import { navigate } from "./ws.js";
 import { Brand, Guide, Icon } from "./UI.jsx";
+import { PixelSkyline, PixelFace } from "./PixelArt.jsx";
 
-export default function Home({ roomCode = "", suffix = "" }) {
-  const [name, setName] = useState(
-    () => sessionStorage.getItem("lg-name") || "",
-  );
-  const [code, setCode] = useState(roomCode);
-  const [mode, setMode] = useState("join");
+export default function Home({ role, name, onName, session }) {
+  const [draft, setDraft] = useState(name);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
   const [guide, setGuide] = useState(false);
-  async function enter(e) {
-    e.preventDefault();
-    if (busy) return;
-    setError("");
-    const n = name.trim(),
-      c = code.trim().toUpperCase();
-    if (mode !== "screen" && !n) {
-      setError("先取一个昵称，让朋友认出你。");
-      return;
-    }
-    if (mode !== "create" && !/^[A-Z0-9]{4}$/.test(c)) {
-      setError("请输入四位房间号，可向房主获取。");
-      return;
-    }
-    setBusy(true);
-    try {
-      const res = await fetch(
-        mode === "create"
-          ? "/api/rooms"
-          : `/api/rooms/${encodeURIComponent(c)}`,
-        {
-          method: mode === "create" ? "POST" : "GET",
-          signal: AbortSignal.timeout(10000),
-        },
-      );
-      if (!res.ok)
-        throw new Error(
-          res.status === 404
-            ? "房间不存在或已失效，请核对房间号。"
-            : "暂时无法进入房间，请重试。",
-        );
-      const data = await res.json();
-      if (!data.code) throw new Error("房间信息不完整，请重试。");
-      if (mode !== "screen") sessionStorage.setItem("lg-name", n);
-      navigate(
-        `/r/${data.code}${mode === "create" ? "/admin" : mode === "screen" ? "/screen" : suffix}${mode === "screen" ? "" : `?name=${encodeURIComponent(n)}`}`,
-      );
-    } catch (err) {
-      setError(
-        err.name === "TimeoutError"
-          ? "连接超时，请重试。"
-          : err.message === "Failed to fetch"
-            ? "无法连接服务器，请检查网络。"
-            : err.message,
-      );
-    } finally {
-      setBusy(false);
-    }
+  const admin = role === "admin";
+  const connected = session.status === "connected";
+  function enter(event) {
+    event.preventDefault();
+    if (!draft.trim()) { setError("取一个昵称，让朋友认出你。"); return; }
+    onName(draft.trim()); setError("");
   }
-  return (
-    <main className="home">
-      <nav className="home-nav">
-        <Brand />
-        <button className="text-btn" onClick={() => setGuide(true)}>
-          <Icon name="help" />
-          怎么玩
-        </button>
-      </nav>
-      <div className="home-layout">
-        <section className="home-story">
-          <h1>
-            凭记忆，
-            <br />找<span>北京。</span>
-          </h1>
-          <p className="home-intro">
-            熟悉的城市，换个方式相遇。
-            <br />
-            藏起地名，看看谁的方向感更准。
-          </p>
-          <ol className="home-rules">
-            <li>
-              <b>02</b>
-              <span>
-                贡献地点<small>给朋友出两道题</small>
-              </span>
-            </li>
-            <li>
-              <b>03</b>
-              <span>
-                地图盲猜<small>凭记忆标记位置</small>
-              </span>
-            </li>
-            <li>
-              <Icon name="trophy" size={28} />
-              <span>
-                揭晓排名<small>总误差越小越好</small>
-              </span>
-            </li>
-          </ol>
-          <p className="home-footnote">同一片北京，各自的城市记忆。</p>
-        </section>
-        <section className="entry-panel">
-          <div className="entry-heading">
-            <Icon
-              name={
-                mode === "create"
-                  ? "pin"
-                  : mode === "screen"
-                    ? "screen"
-                    : "users"
-              }
-              size={28}
-            />
-            <h2>
-              {roomCode
-                ? `加入房间 ${roomCode}`
-                : mode === "create"
-                  ? "做这局的房主"
-                  : mode === "screen"
-                    ? "打开现场大屏"
-                    : "朋友们，集合了"}
-            </h2>
-            <p>
-              {mode === "create"
-                ? "邀请朋友来一场北京记忆挑战。"
-                : mode === "screen"
-                  ? "输入房间号，实时观看大家的挑战。"
-                  : "输入房间号，加入这一场城市探索。"}
-            </p>
-          </div>
-          {!roomCode && (
-            <div className="entry-tabs" role="group" aria-label="进入方式">
-              <button
-                aria-pressed={mode === "join"}
-                onClick={() => {
-                  setMode("join");
-                  setError("");
-                }}
-              >
-                加入游戏
-              </button>
-              <button
-                aria-pressed={mode === "create"}
-                onClick={() => {
-                  setMode("create");
-                  setError("");
-                }}
-              >
-                创建房间
-              </button>
-            </div>
-          )}
-          <form onSubmit={enter}>
-            {mode !== "screen" && (
-              <label htmlFor="nickname">
-                你的昵称
-                <input
-                  id="nickname"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="朋友们怎么称呼你？"
-                  maxLength={16}
-                  autoComplete="nickname"
-                  required
-                />
-              </label>
-            )}
-            {mode !== "create" && (
-              <label htmlFor="room-code">
-                房间号
-                <input
-                  id="room-code"
-                  className="code-input"
-                  value={code}
-                  onChange={(e) =>
-                    setCode(
-                      e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-                    )
-                  }
-                  placeholder="例如 ABCD"
-                  maxLength={4}
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  spellCheck={false}
-                  required
-                />
-              </label>
-            )}
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
-            )}
-            <button className="primary entry-submit" disabled={busy}>
-              {busy
-                ? "正在连接…"
-                : mode === "create"
-                  ? "创建房间"
-                  : mode === "screen"
-                    ? "进入大屏"
-                    : "加入游戏"}
-              <Icon name="arrow" />
-            </button>
-          </form>
-          <p className="entry-note">
-            {mode === "create"
-              ? "你可以主持，也可以一起答题。"
-              : "无需注册，取个昵称就能开始。"}
-          </p>
-          {!roomCode && (
-            <button
-              className="text-btn screen-entry"
-              onClick={() => {
-                setMode(mode === "screen" ? "join" : "screen");
-                setError("");
-              }}
-            >
-              <Icon name={mode === "screen" ? "back" : "screen"} />
-              {mode === "screen" ? "返回玩家入口" : "我是来开大屏的"}
-            </button>
-          )}
-        </section>
-      </div>
-      <Guide open={guide} onClose={() => setGuide(false)} />
-    </main>
-  );
+  async function create() {
+    setError("");
+    try { await session.send({ type: "create" }); }
+    catch (err) { setError(err.message); }
+  }
+  return <main className={`home session-home ${role === "screen" ? "waiting-screen" : ""}`}>
+    <nav className="home-nav"><Brand /><button className="text-btn" onClick={() => setGuide(true)}><Icon name="help" />怎么玩</button></nav>
+    <div className="home-layout">
+      <section className="session-hero">
+        <h1>北京地图<br /><span>闯关开始！</span></h1>
+        <p className="home-intro">收起地名，打开方向感。<br />和朋友一起，找到记忆里的北京。</p>
+        <PixelSkyline />
+        <ol className="home-rules"><li><b>02</b><span>贡献地点<small>给朋友出题</small></span></li><li><b>03</b><span>盲猜钉点<small>提交即看成绩</small></span></li><li><Icon name="trophy" size={28} /><span>争夺排名<small>误差越小越好</small></span></li></ol>
+      </section>
+      <section className="entry-panel session-entry">
+        <PixelFace />
+        <h2>{admin ? "管理员控制台" : role === "screen" ? "现场大屏" : "准备好挑战了吗？"}</h2>
+        {!name && role !== "screen" ? <form onSubmit={enter}>
+          <label htmlFor="nickname">你的昵称</label>
+          <input id="nickname" value={draft} onChange={e => setDraft(e.target.value)} maxLength={32} placeholder="例如：胡同探险家" autoComplete="nickname" />
+          <button className="primary" type="submit">{admin ? "进入控制台" : "加入游戏"}<Icon name="arrow" /></button>
+          <p className="muted small">无需房间号，自动加入管理员的当前游戏。</p>
+        </form> : <div className="session-waiting" role="status">
+          <h3>{!connected ? session.status === "reconnecting" ? "正在重连…" : "正在连接游戏…" : admin ? "开启一场北京冒险" : "等待管理员创建房间"}</h3>
+          <p>{!connected ? "连接恢复后会自动同步，请稍候。" : admin ? "建房后，等待中的玩家和大屏会自动进入。" : `${name ? `${name}，` : ""}房间准备好后自动进入，无需刷新。`}</p>
+          {admin && <button className="primary" disabled={!connected || session.pending} onClick={create}>{session.pending ? "正在创建…" : "创建房间"}<Icon name="flag" /></button>}
+          {admin && <a className="secondary" href="/screen" target="_blank" rel="noreferrer"><Icon name="screen" />打开大屏</a>}
+        </div>}
+        {(error || session.error) && <p className="error" role="alert">{error || session.error}</p>}
+      </section>
+    </div>
+    <Guide open={guide} onClose={() => setGuide(false)} />
+  </main>;
 }

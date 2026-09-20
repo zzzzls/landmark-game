@@ -62,7 +62,7 @@ export function playerMapOverlays(you, phase) {
   const resultMap = Object.fromEntries(
     (you?.results || []).map((r) => [r.id, r]),
   );
-  const showTruth = phase === "reveal";
+  const showTruth = phase === "reveal" || !!you?.submitted;
   const pins = [];
   const lines = [];
   for (let i = 0; i < targets.length; i++) {

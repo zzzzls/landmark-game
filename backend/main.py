@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import socket
@@ -12,6 +13,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from starlette.websockets import WebSocketState
 
 from .landmarks import catalog_search
 from .rooms import Connection, RoomManager
@@ -65,17 +67,38 @@ def lan_ipv4s() -> list[str]:
     return sorted(found)
 
 
-async def broadcast(room) -> None:
-    stale = []
-    for conn in list(room.connections):
-        player = room.players.get(conn.player_id) if conn.player_id else None
+async def safe_send(conn, payload) -> bool:
+    try:
+        await asyncio.wait_for(conn.ws.send_json(payload), timeout=3)
+        return True
+    except Exception:
+        # Stop the receive task too: removing a failed sender from the list
+        # alone leaves a half-alive connection that cannot receive confirmation.
         try:
-            await conn.ws.send_json(room.snapshot(conn.role, player))
+            await asyncio.wait_for(conn.ws.close(code=1011), timeout=1)
         except Exception:
-            stale.append(conn)
-    for conn in stale:
-        if conn in room.connections:
-            room.connections.remove(conn)
+            pass
+        return False
+
+
+async def broadcast(room) -> None:
+    # Serialize broadcasts and send concurrently so one slow screen cannot
+    # multiply latency by the number of players.
+    async with room.broadcast_lock:
+        connections = list(room.connections)
+        payloads = [room.snapshot(c.role, room.players.get(c.player_id)) for c in connections]
+        sent = await asyncio.gather(*(safe_send(c, p) for c, p in zip(connections, payloads)))
+        for conn, ok in zip(connections, sent):
+            if not ok and conn in room.connections:
+                room.connections.remove(conn)
+
+
+async def broadcast_session() -> None:
+    connections = list(manager.sessions)
+    sent = await asyncio.gather(*(safe_send(c, manager.session_snapshot()) for c in connections))
+    for conn, ok in zip(connections, sent):
+        if not ok and conn in manager.sessions:
+            manager.sessions.remove(conn)
 
 
 @app.get("/api/health")
@@ -85,8 +108,7 @@ async def health():
 
 @app.post("/api/rooms")
 async def create_room():
-    room = manager.create()
-    return {"code": room.code}
+    return JSONResponse({"message": "请通过管理员入口创建房间"}, status_code=405)
 
 
 @app.get("/api/rooms/{code}")
@@ -174,6 +196,61 @@ async def lan_urls():
     return {"urls": urls}
 
 
+@app.websocket("/ws/session/{role}")
+async def ws_session(websocket: WebSocket, role: str):
+    await websocket.accept()
+    if role not in ("admin", "player", "screen"):
+        await websocket.send_json({"type": "error", "message": "未知角色"})
+        await websocket.close(code=4400)
+        return
+    conn = Connection(websocket, role, None)
+    async with manager.lock:
+        manager.sessions.append(conn)
+        await websocket.send_json(manager.session_snapshot())
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            request_id = None
+            try:
+                msg = json.loads(raw)
+                if not isinstance(msg, dict):
+                    raise ValueError("无效消息")
+                request_id = msg.get("requestId")
+                async with manager.lock:
+                    action = msg.get("type")
+                    if action == "sync":
+                        await websocket.send_json(manager.session_snapshot())
+                        continue
+                    if role != "admin":
+                        raise ValueError("只有管理员可以创建或重开房间")
+                    if not isinstance(request_id, str) or not request_id:
+                        raise ValueError("缺少请求编号")
+                    if action == "create":
+                        room = manager.create_current()
+                    elif action == "restart":
+                        code = msg.get("code")
+                        if not isinstance(code, str):
+                            raise ValueError("缺少原房间号")
+                        room = manager.restart(code)
+                    else:
+                        raise ValueError("未知操作")
+                    await broadcast_session()
+                    await websocket.send_json({"type": "ack", "requestId": request_id, "room": room.code})
+            except (ValueError, TypeError) as exc:
+                await websocket.send_json({"type": "error", "message": str(exc), "requestId": request_id})
+    except WebSocketDisconnect:
+        pass
+    except RuntimeError:
+        # A concurrent broadcast may discover a closed transport before the
+        # receive loop does (especially during a whole-room reconnect).
+        if websocket.client_state != WebSocketState.DISCONNECTED and websocket.application_state != WebSocketState.DISCONNECTED:
+            raise
+    finally:
+        async with manager.lock:
+            if conn in manager.sessions:
+                manager.sessions.remove(conn)
+
+
 @app.websocket("/ws/{code}/{role}")
 async def ws_room(websocket: WebSocket, code: str, role: str):
     await websocket.accept()
@@ -185,7 +262,7 @@ async def ws_room(websocket: WebSocket, code: str, role: str):
         return
 
     room = manager.get(code)
-    if not room:
+    if not room or room is not manager.current:
         await websocket.send_json({"type": "error", "message": "房间不存在"})
         await websocket.close(code=4404)
         return
@@ -214,7 +291,7 @@ async def ws_room(websocket: WebSocket, code: str, role: str):
 
     for old in stale:
         try:
-            await old.ws.close()
+            await old.ws.close(code=4409, reason="同名连接已在另一页面接管")
         except Exception:
             pass
 
@@ -228,9 +305,16 @@ async def ws_room(websocket: WebSocket, code: str, role: str):
             except json.JSONDecodeError:
                 await websocket.send_json({"type": "error", "message": "无效消息"})
                 continue
+            if not isinstance(msg, dict):
+                await websocket.send_json({"type": "error", "message": "无效消息"})
+                continue
             mtype = msg.get("type")
             try:
                 async with room.lock:
+                    if room is not manager.current:
+                        raise ValueError("房间已经切换，请加入当前房间")
+                    if conn not in room.connections:
+                        raise ValueError("连接已被接管，请重新连接")
                     if player is None and role != "screen":
                         raise ValueError("未加入房间")
                     if mtype == "contribute" and player:
@@ -262,6 +346,11 @@ async def ws_room(websocket: WebSocket, code: str, role: str):
             await broadcast(room)
     except WebSocketDisconnect:
         pass
+    except RuntimeError:
+        # A concurrent broadcast may discover a closed transport before the
+        # receive loop does (especially during a whole-room reconnect).
+        if websocket.client_state != WebSocketState.DISCONNECTED and websocket.application_state != WebSocketState.DISCONNECTED:
+            raise
     finally:
         async with room.lock:
             if conn in room.connections:

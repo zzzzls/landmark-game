@@ -47,6 +47,7 @@ function pinHtml({ name, label, tag, color, kind, preview: isPreview }) {
 
 export default function MapView({
   pins = [],
+  references = [],
   lines = [],
   preview = null,
   clickable = false,
@@ -62,6 +63,7 @@ export default function MapView({
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const overlayRef = useRef([]);
+  const referenceSignature = JSON.stringify(references);
   const clickableRef = useRef(clickable);
   const onClickRef = useRef(onMapClick);
   const onPreviewClickRef = useRef(onPreviewClick);
@@ -211,6 +213,22 @@ export default function MapView({
       map.off("resize", schedule);
     };
   }, [status, nonce]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const AMap = window.AMap;
+    if (!map || !AMap || status !== "ready") return;
+    // Public orientation aids are separate from game overlays and fit bounds.
+    const markers = references.map(place => new AMap.Marker({
+      position: [place.lng, place.lat],
+      offset: new AMap.Pixel(-16, -16),
+      bubble: true,
+      zIndex: 60,
+      content: `<div class="mk-reference" data-reference-id="${escapeHtml(place.id)}" role="img" aria-label="公共参照：${escapeHtml(place.name)}"><span class="reference-emoji" aria-hidden="true">${escapeHtml(place.emoji)}</span><span class="reference-name">${escapeHtml(place.name)}<small>参照</small></span></div>`,
+    }));
+    if (markers.length) map.add(markers);
+    return () => { if (mapRef.current === map) map.remove(markers); };
+  }, [referenceSignature, status, nonce]);
 
   useEffect(() => {
     const map = mapRef.current;

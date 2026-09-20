@@ -11,7 +11,8 @@
     "preview": "vite preview --host",
     "test:rules": "uv run python -m unittest discover -s tests -v",
     "test:unit": "node --test tests/*.test.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:recovery": "node tests/service-restart.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

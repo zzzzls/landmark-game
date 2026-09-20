@@ -255,3 +255,14 @@ test("terminal room error stops retries and cannot send more commands", async (t
   h.advance(60_000);
   assert.equal(h.sockets.length, 1);
 });
+
+test("nickname takeover stops the old browser reconnect loop", async t => {
+  const h = harness(t);
+  h.sockets[0].state(snapshot());
+  h.sockets[0].onclose({ code: 4409 });
+  assert.equal(h.statuses.at(-1), "error");
+  assert.match(h.errors.at(-1), /其他页面/);
+  h.advance(60000);
+  assert.equal(h.sockets.length, 1);
+  await assert.rejects(h.connection.send({ type: "start" }), /连接/);
+});

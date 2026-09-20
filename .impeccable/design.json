@@ -1,148 +1,78 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-20T13:54:21.236056+00:00",
+  "generatedAt": "2026-09-20T15:14:20.188548+00:00",
   "title": "Design System: 北京地标盲猜",
   "extensions": {
     "colorMeta": {
       "paper": {
         "role": "neutral",
-        "displayName": "米白",
-        "tonalRamp": [
-          "oklch(15.00% 0.0111 89.72)",
-          "oklch(26.43% 0.0111 89.72)",
-          "oklch(37.86% 0.0111 89.72)",
-          "oklch(49.29% 0.0111 89.72)",
-          "oklch(60.71% 0.0111 89.72)",
-          "oklch(72.14% 0.0111 89.72)",
-          "oklch(83.57% 0.0111 89.72)",
-          "oklch(95.00% 0.0111 89.72)"
-        ]
+        "displayName": "浅天空蓝背景",
+        "canonical": "#eef4f6"
       },
       "surface": {
         "role": "neutral",
-        "displayName": "暖白表面",
-        "tonalRamp": [
-          "oklch(15.00% 0.0069 88.64)",
-          "oklch(26.43% 0.0069 88.64)",
-          "oklch(37.86% 0.0069 88.64)",
-          "oklch(49.29% 0.0069 88.64)",
-          "oklch(60.71% 0.0069 88.64)",
-          "oklch(72.14% 0.0069 88.64)",
-          "oklch(83.57% 0.0069 88.64)",
-          "oklch(95.00% 0.0069 88.64)"
-        ]
+        "displayName": "奶白面板",
+        "canonical": "#fffdf5"
       },
       "ink": {
         "role": "neutral",
-        "displayName": "深墨",
-        "tonalRamp": [
-          "oklch(15.00% 0.0100 186.19)",
-          "oklch(26.43% 0.0100 186.19)",
-          "oklch(37.86% 0.0100 186.19)",
-          "oklch(49.29% 0.0100 186.19)",
-          "oklch(60.71% 0.0100 186.19)",
-          "oklch(72.14% 0.0100 186.19)",
-          "oklch(83.57% 0.0100 186.19)",
-          "oklch(95.00% 0.0100 186.19)"
-        ]
+        "displayName": "深海军蓝正文",
+        "canonical": "#202d44"
       },
       "muted": {
         "role": "neutral",
-        "displayName": "次要文字",
-        "tonalRamp": [
-          "oklch(15.00% 0.0099 145.43)",
-          "oklch(26.43% 0.0099 145.43)",
-          "oklch(37.86% 0.0099 145.43)",
-          "oklch(49.29% 0.0099 145.43)",
-          "oklch(60.71% 0.0099 145.43)",
-          "oklch(72.14% 0.0099 145.43)",
-          "oklch(83.57% 0.0099 145.43)",
-          "oklch(95.00% 0.0099 145.43)"
-        ]
+        "displayName": "辅助文字",
+        "canonical": "#57657b"
       },
       "line": {
         "role": "neutral",
-        "displayName": "分隔线",
-        "tonalRamp": [
-          "oklch(15.00% 0.0148 106.69)",
-          "oklch(26.43% 0.0148 106.69)",
-          "oklch(37.86% 0.0148 106.69)",
-          "oklch(49.29% 0.0148 106.69)",
-          "oklch(60.71% 0.0148 106.69)",
-          "oklch(72.14% 0.0148 106.69)",
-          "oklch(83.57% 0.0148 106.69)",
-          "oklch(95.00% 0.0148 106.69)"
-        ]
+        "displayName": "分隔描边",
+        "canonical": "#b0bfd0"
       },
       "accent": {
         "role": "primary",
-        "displayName": "朱红",
-        "tonalRamp": [
-          "oklch(15.00% 0.1502 31.98)",
-          "oklch(26.43% 0.1502 31.98)",
-          "oklch(37.86% 0.1502 31.98)",
-          "oklch(49.29% 0.1502 31.98)",
-          "oklch(60.71% 0.1502 31.98)",
-          "oklch(72.14% 0.1502 31.98)",
-          "oklch(83.57% 0.1502 31.98)",
-          "oklch(95.00% 0.1502 31.98)"
-        ]
+        "displayName": "街机金黄",
+        "canonical": "#f5bf36"
       },
       "accent-dark": {
         "role": "primary",
-        "displayName": "深朱红",
-        "tonalRamp": [
-          "oklch(15.00% 0.1339 31.06)",
-          "oklch(26.43% 0.1339 31.06)",
-          "oklch(37.86% 0.1339 31.06)",
-          "oklch(49.29% 0.1339 31.06)",
-          "oklch(60.71% 0.1339 31.06)",
-          "oklch(72.14% 0.1339 31.06)",
-          "oklch(83.57% 0.1339 31.06)",
-          "oklch(95.00% 0.1339 31.06)"
-        ]
+        "displayName": "悬停金黄",
+        "canonical": "#ffd76b"
       },
       "accent-soft": {
-        "role": "primary",
-        "displayName": "浅朱红",
-        "tonalRamp": [
-          "oklch(15.00% 0.0204 53.25)",
-          "oklch(26.43% 0.0204 53.25)",
-          "oklch(37.86% 0.0204 53.25)",
-          "oklch(49.29% 0.0204 53.25)",
-          "oklch(60.71% 0.0204 53.25)",
-          "oklch(72.14% 0.0204 53.25)",
-          "oklch(83.57% 0.0204 53.25)",
-          "oklch(95.00% 0.0204 53.25)"
-        ]
+        "role": "neutral",
+        "displayName": "柔和强调表面",
+        "canonical": "#fff1bf"
       },
       "green": {
-        "role": "semantic",
-        "displayName": "成功与真实位置",
-        "tonalRamp": [
-          "oklch(15.00% 0.0699 157.89)",
-          "oklch(26.43% 0.0699 157.89)",
-          "oklch(37.86% 0.0699 157.89)",
-          "oklch(49.29% 0.0699 157.89)",
-          "oklch(60.71% 0.0699 157.89)",
-          "oklch(72.14% 0.0699 157.89)",
-          "oklch(83.57% 0.0699 157.89)",
-          "oklch(95.00% 0.0699 157.89)"
-        ]
+        "role": "secondary",
+        "displayName": "完成薄荷绿",
+        "canonical": "#16735d"
       },
       "error": {
-        "role": "semantic",
-        "displayName": "错误",
-        "tonalRamp": [
-          "oklch(15.00% 0.1542 27.56)",
-          "oklch(26.43% 0.1542 27.56)",
-          "oklch(37.86% 0.1542 27.56)",
-          "oklch(49.29% 0.1542 27.56)",
-          "oklch(60.71% 0.1542 27.56)",
-          "oklch(72.14% 0.1542 27.56)",
-          "oklch(83.57% 0.1542 27.56)",
-          "oklch(95.00% 0.1542 27.56)"
-        ]
+        "role": "secondary",
+        "displayName": "错误文字",
+        "canonical": "#b53b35"
+      },
+      "coral": {
+        "role": "secondary",
+        "displayName": "像素珊瑚",
+        "canonical": "#f27c68"
+      },
+      "input-bg": {
+        "role": "neutral",
+        "displayName": "输入底色",
+        "canonical": "#ffffff"
+      },
+      "result-bg": {
+        "role": "neutral",
+        "displayName": "成绩底色",
+        "canonical": "#fff5ce"
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "可读棕金",
+        "canonical": "#795409"
       }
     },
     "typographyMeta": {
@@ -165,50 +95,59 @@
       "label": {
         "displayName": "表单标签",
         "purpose": "持续可见的输入标签。"
+      },
+      "digits": {
+        "displayName": "原创像素数字",
+        "purpose": "本地 pixel-digits.ttf 仅覆盖数字与 -./，中文继续系统字体。"
       }
     },
     "shadows": [
       {
-        "name": "shadow",
-        "value": "0 10px 36px rgb(37 44 43 / 13%)",
-        "purpose": "--shadow：桌面地图面板、对话框、toast。"
+        "name": "panel",
+        "value": "6px 6px 0 #b9c9d6",
+        "purpose": "桌面任务面板。"
+      },
+      {
+        "name": "entry-dialog",
+        "value": "8px 8px 0 #b9c9d6",
+        "purpose": "入口与对话框。"
+      },
+      {
+        "name": "primary",
+        "value": "0 4px 0 #b18a38",
+        "purpose": "主按钮，下压时缩为1px。"
       },
       {
         "name": "mobile-panel",
-        "value": "0 -6px 30px #252c2b16",
-        "purpose": "手机底部任务面板；组件局部值。"
+        "value": "0 -5px 0 #b9c9d6",
+        "purpose": "贴底任务面板。"
       },
       {
         "name": "map-caption",
-        "value": "0 3px 12px #252c2b10",
-        "purpose": "地图说明标签；组件局部值。"
-      },
-      {
-        "name": "room-tab-selected",
-        "value": "0 2px 5px #252c2b0a",
-        "purpose": "房主选中视图；组件局部值。"
+        "value": "3px 3px 0 #b9c9d6",
+        "purpose": "地图说明。"
       }
     ],
     "motion": [
       {
         "name": "ease",
         "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "--ease：短促状态动效。"
+        "purpose": "短促状态反馈。"
       },
       {
         "name": "button-transition",
         "value": "background 0.16s ease, transform 0.16s ease",
-        "purpose": "主、次、文字及图标按钮。"
+        "purpose": "按钮下压反馈。"
       },
       {
         "name": "pin-drop",
         "value": "0.3s var(--ease)",
-        "purpose": "地图预览点落下。"
+        "purpose": "预览菱形针落下。"
       },
       {
         "name": "panel-open",
         "value": "0.22s var(--ease)",
-        "purpose": "手机展开面板内容出现。"
+        "purpose": "手机展开面板。"
       },
       {
         "name": "progress",
@@ -218,32 +157,22 @@
       {
         "name": "ink-trace",
         "value": "800ms var(--ease) both",
-        "purpose": "个人成绩单首次计分揭晓时描画路线；尊重 reduced motion。"
+        "purpose": "单次结算路线描画。"
       },
       {
         "name": "seal-land",
         "value": "600ms var(--ease) 120ms both",
-        "purpose": "真实名次印章落下，最终保留 -7deg 倾斜。"
-      },
-      {
-        "name": "score-uncover",
-        "value": "650ms var(--ease) both",
-        "purpose": "遮罩揭示真实成绩文本；数字从首帧即为真实值，不累加。"
+        "purpose": "方形勋章落下，无最终倾斜。"
       },
       {
         "name": "ink-spark",
         "value": "650ms var(--ease) 400ms both",
-        "purpose": "票据内 8 粒朱红/金色纸屑，仅完成并计分者播放。"
+        "purpose": "八粒明黄薄荷色像素粒子。"
       },
       {
         "name": "reveal-moment",
         "value": "1400ms",
-        "purpose": "庆祝状态总窗口；sessionStorage 可用时按房间/玩家去重，同标签页刷新或切换视图不重播。"
-      },
-      {
-        "name": "play-again-icon",
-        "value": "transform 180ms var(--ease)",
-        "purpose": "再开一局按钮悬停时图标旋转 -30deg；仍尊重 reduced motion。"
+        "purpose": "按房间玩家去重；未提交者不播放。尊重减少动态效果；数字不做遮罩或累加。"
       }
     ],
     "breakpoints": [
@@ -262,6 +191,10 @@
       {
         "name": "short-mobile",
         "value": "(max-height: 650px) and (max-width: 860px)"
+      },
+      {
+        "name": "compact-screen-max",
+        "value": "1400px"
       }
     ]
   },
@@ -270,97 +203,88 @@
       "name": "主按钮",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
-      "html": "<button class=\"ds-button-primary\">确认位置</button>",
-      "css": ".ds-button-primary{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:50px;background:var(--accent,#ae3e2b);color:var(--surface,#fffdf8);padding:13px 20px;border:0;border-radius:12px;font-weight:600;}.ds-button-primary:hover:not(:disabled){background:var(--accent-dark,#8f2e20);}.ds-button-primary:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-primary:disabled{opacity:.46;cursor:not-allowed;}.ds-button-primary:active:not(:disabled){transform:translateY(1px);}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
+      "description": "当前实现的像素按钮；禁用状态由业务决定。",
+      "html": "<button class=\"ds-primary\">确认位置</button>",
+      "css": ".ds-primary{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:50px;display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--accent,#f5bf36);color:var(--ink,#202d44);padding:13px 20px;border:2px solid var(--line,#b0bfd0);border-radius:0;box-shadow:0 4px 0 #b18a38;font-size:15px;font-weight:700;cursor:pointer;transition:background .16s ease,transform .16s ease;}.ds-primary:focus-visible{outline:3px solid var(--accent,#f5bf36);outline-offset:3px;}.ds-primary:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}.ds-primary:active:not(:disabled){transform:translateY(3px);}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none;}}"
     },
     {
       "name": "次按钮",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
-      "html": "<button class=\"ds-button-secondary\">重新选</button>",
-      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;background:var(--surface,#fffdf8);color:var(--ink,#252c2b);padding:10px 16px;border:1px solid var(--line,#deded3);border-radius:12px;font-weight:550;}.ds-button-secondary:hover:not(:disabled){background:#eeeee5;}.ds-button-secondary:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-secondary:disabled{opacity:.46;cursor:not-allowed;}.ds-button-secondary:active:not(:disabled){transform:translateY(1px);}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
+      "description": "当前实现的像素按钮；禁用状态由业务决定。",
+      "html": "<button class=\"ds-secondary\">重新选</button>",
+      "css": ".ds-secondary{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--surface,#fffdf5);color:var(--ink,#202d44);padding:10px 16px;border:2px solid var(--line,#b0bfd0);border-radius:0;box-shadow:0 3px 0 #c0ced8;font-size:15px;font-weight:700;cursor:pointer;transition:background .16s ease,transform .16s ease;}.ds-secondary:focus-visible{outline:3px solid var(--accent,#f5bf36);outline-offset:3px;}.ds-secondary:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}.ds-secondary:active:not(:disabled){transform:translateY(3px);}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none;}}"
     },
     {
       "name": "文字按钮",
       "kind": "button",
       "refersTo": "button-text",
-      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
-      "html": "<button class=\"ds-button-text\">查看指引</button>",
-      "css": ".ds-button-text{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;background:none;color:var(--accent,#ae3e2b);padding:6px 8px;border:0;font-size:14px;}.ds-button-text:hover:not(:disabled){background:var(--accent-soft,#f7e8df);border-radius:8px;}.ds-button-text:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-text:disabled{opacity:.46;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-text{transition:none;}}"
-    },
-    {
-      "name": "图标按钮",
-      "kind": "button",
-      "refersTo": "button-icon",
-      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
-      "html": "<button class=\"ds-button-icon\" aria-label=\"关闭\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"m6 6 12 12M6 18 18 6\"/></svg></button>",
-      "css": ".ds-button-icon{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;width:44px;min-width:44px;background:none;color:var(--muted,#656a65);padding:10px;border:0;border-radius:50%;}.ds-button-icon:hover:not(:disabled){background:#eaeade;color:var(--ink,#252c2b);}.ds-button-icon:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-icon:disabled{opacity:.46;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-icon{transition:none;}}"
+      "description": "当前实现的像素按钮；禁用状态由业务决定。",
+      "html": "<button class=\"ds-text\">查看指引</button>",
+      "css": ".ds-text{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:9px;background:transparent;color:var(--accent-ink,#795409);padding:6px 8px;border:0;border-radius:0;box-shadow:none;font-size:15px;font-weight:700;cursor:pointer;transition:background .16s ease,transform .16s ease;}.ds-text:focus-visible{outline:3px solid var(--accent,#f5bf36);outline-offset:3px;}.ds-text:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}.ds-text:active:not(:disabled){transform:translateY(3px);}@media(prefers-reduced-motion:reduce){.ds-text{transition:none;}}"
     },
     {
       "name": "输入框",
       "kind": "input",
       "refersTo": "input",
-      "description": "持续可见标签，16px 输入文字与朱红聚焦反馈。",
-      "html": "<label class=\"ds-label\" for=\"ds-nickname\">你的昵称<input id=\"ds-nickname\" class=\"ds-input\" placeholder=\"朋友们怎么称呼你？\" /></label>",
-      "css": ".ds-label{display:block;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;font-size:14px;font-weight:550;color:var(--ink,#252c2b);}.ds-input{display:block;width:100%;min-height:50px;margin-top:8px;padding:13px 15px;border:1px solid #bfc2b6;border-radius:10px;background:var(--surface,#fffdf8);color:var(--ink,#252c2b);font:400 16px/1.55 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;caret-color:var(--accent,#ae3e2b);outline:none;}.ds-input::placeholder{color:var(--muted,#656a65);}.ds-input:focus,.ds-input:focus-visible{border-color:var(--accent,#ae3e2b);box-shadow:0 0 0 2px #ae3e2b20;}"
+      "description": "持续可见标签，16px输入文字，明黄焦点。",
+      "html": "<label class=\"ds-label\">你的昵称<input class=\"ds-input\" placeholder=\"例如：胡同探险家\" /></label>",
+      "css": ".ds-label{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;color:var(--ink,#202d44);font-size:14px;}.ds-input{display:block;box-sizing:border-box;width:100%;margin-top:8px;padding:13px 15px;min-height:50px;border:2px solid #8499af;background:#ffffff;color:var(--ink,#202d44);font:inherit;font-size:16px;caret-color:var(--accent-ink,#795409);border-radius:0;outline:none;}.ds-input::placeholder{color:var(--muted,#57657b);}.ds-input:focus{border-color:var(--accent-ink,#795409);box-shadow:3px 3px 0 #b9c9d6;}"
     },
     {
-      "name": "房主视图导航",
+      "name": "管理员视图",
       "kind": "nav",
       "refersTo": "room-tab-selected",
-      "description": "同一连接切换管理与答题；预览只展示现有样式。",
-      "html": "<div class=\"ds-room-tabs\" role=\"group\" aria-label=\"房主视图\"><button aria-pressed=\"true\">房间管理</button><button aria-pressed=\"false\">我的答题</button></div>",
-      "css": ".ds-room-tabs{display:flex;padding:5px;gap:4px;border-radius:10px;background:#efefe5;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-room-tabs button{flex:1;min-height:44px;border:0;border-radius:7px;background:none;color:var(--muted,#656a65);font:inherit;font-size:13px;cursor:pointer;}.ds-room-tabs button[aria-pressed=\"true\"]{background:var(--surface,#fffdf8);color:var(--accent,#ae3e2b);box-shadow:0 2px 5px #252c2b0a;font-weight:650;}.ds-room-tabs button:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}"
+      "description": "同一连接切换管理和答题。",
+      "html": "<div class=\"ds-tabs\" role=\"group\" aria-label=\"管理员视图\"><button aria-pressed=\"true\">房间管理</button><button aria-pressed=\"false\">我的答题</button></div>",
+      "css": ".ds-tabs{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;gap:4px;padding:3px;border:1px solid var(--line,#b0bfd0);background:#e5edf1;}.ds-tabs button{min-height:44px;flex:1;background:transparent;color:var(--muted,#57657b);border:0;font:inherit;font-size:13px;cursor:pointer;}.ds-tabs button[aria-pressed=\"true\"]{background:var(--paper,#eef4f6);color:var(--accent-ink,#795409);box-shadow:inset 0 -3px var(--accent,#f5bf36);}.ds-tabs button:focus-visible{outline:3px solid var(--accent,#f5bf36);outline-offset:3px;}"
     },
     {
-      "name": "题目选择",
+      "name": "方形关卡",
       "kind": "chip",
       "refersTo": "target-selected",
-      "description": "数字与确认勾表达题号和完成状态。",
-      "html": "<div class=\"ds-targets\" role=\"group\" aria-label=\"选择题目\"><button aria-pressed=\"true\" aria-label=\"第1题\"><span>1</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg></button><button aria-pressed=\"false\" aria-label=\"第2题\">2<span class=\"ds-dash\"></span></button></div>",
-      "css": ".ds-targets{display:flex;gap:10px;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-targets button{display:flex;flex:1;align-items:center;justify-content:center;gap:14px;min-height:44px;border:1px solid transparent;border-radius:9px;background:#efefe5;color:var(--muted,#656a65);font:inherit;font-variant-numeric:tabular-nums;cursor:pointer;}.ds-targets button[aria-pressed=\"true\"]{background:var(--accent-soft,#f7e8df);color:var(--accent,#ae3e2b);border-color:#d4a18c;}.ds-targets button:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-dash{width:12px;height:2px;background:#b5b9aa;}"
+      "description": "题号与勾号同时表达当前题和完成。",
+      "html": "<div class=\"ds-targets\"><button aria-pressed=\"true\" aria-label=\"第1题，已确认\">1 <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"currentColor\" shape-rendering=\"crispEdges\" aria-hidden=\"true\"><path d=\"M19 4h4v4h-4v4h-4v4h-4v4H7v-4H3v-4H0V8h4v4h4v4h3v-4h4V8h4z\"/></svg></button><button aria-pressed=\"false\">2</button><button aria-pressed=\"false\">3</button></div>",
+      "css": ".ds-targets{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;gap:10px;}.ds-targets button{display:flex;align-items:center;justify-content:center;gap:14px;flex:1;min-height:44px;border:2px solid var(--line,#b0bfd0);border-radius:0;background:#e5edf1;color:var(--muted,#57657b);box-shadow:0 3px 0 #c0ced8;cursor:pointer;}.ds-targets button[aria-pressed=\"true\"]{background:var(--accent,#f5bf36);color:var(--ink,#202d44);border-color:var(--accent-ink,#795409);}.ds-targets button:focus-visible{outline:3px solid var(--accent,#f5bf36);outline-offset:3px;}"
     },
     {
-      "name": "入口容器",
+      "name": "默认房间等待",
       "kind": "card",
       "refersTo": "entry-panel",
-      "description": "暖白边框容器；手机改用较小圆角与内边距。",
-      "html": "<section class=\"ds-entry\"><h2>朋友们，集合了</h2><p>输入房间号，加入这一场城市探索。</p></section>",
-      "css": ".ds-entry{padding:32px;background:var(--surface,#fffdf8);border:1px solid var(--line,#deded3);border-radius:22px;color:var(--ink,#252c2b);font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-entry h2{margin:0;font-size:25px;font-weight:650;line-height:1.3;letter-spacing:-.02em;}.ds-entry p{margin:8px 0 0;font-size:13px;line-height:1.55;color:var(--muted,#656a65);}@media(max-width:860px){.ds-entry{padding:24px;border-radius:18px;}.ds-entry h2{font-size:22px;}.ds-entry p{font-size:12px;}}"
+      "description": "固定角色入口，不再输入房间号。",
+      "html": "<section class=\"ds-entry\"><h2>等待管理员创建房间</h2><p>房间准备好后自动进入，无需刷新。</p></section>",
+      "css": ".ds-entry{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;padding:32px;border:2px solid var(--line,#b0bfd0);border-top:5px solid var(--accent,#f5bf36);background:var(--surface,#fffdf5);color:var(--ink,#202d44);box-shadow:8px 8px 0 #b9c9d6;}.ds-entry h2{font-size:25px;margin:0;line-height:1.4;}.ds-entry p{font-size:14px;color:var(--muted,#57657b);line-height:1.8;margin:16px 0 0;}"
     },
     {
-      "name": "个人成绩票据",
+      "name": "个人通关成绩",
       "kind": "custom",
       "refersTo": "result-summary",
-      "description": "静态样式示例；演示数字不是游戏结果。真实界面首次完成结算时单次庆祝，完整动效时序见 extensions.motion，源码在 src/Results.jsx。",
-      "html": "<section class=\"ds-result-summary\" aria-label=\"个人成绩单示例\"><svg class=\"ds-result-route\" viewBox=\"0 0 320 56\" fill=\"none\" aria-hidden=\"true\"><path class=\"ds-route-base\" d=\"M-10 40h46l25-24h65l28 25h63l30-25h88\"/><path class=\"ds-route-ink\" d=\"M-10 40h46l25-24h65l28 25h63l30-25h88\"/><circle cx=\"61\" cy=\"16\" r=\"4\"/><circle cx=\"217\" cy=\"41\" r=\"4\"/></svg><h2 class=\"ds-result-headline\">北京，又熟悉了一点</h2><div class=\"ds-result-score-row\"><div class=\"ds-result-score\"><span>你的总误差</span><strong>2.40 km</strong></div><div class=\"ds-result-seal\"><span>北京盲猜</span><span class=\"ds-result-rank\">第 <b>2</b> 名</span><span>挑战完成</span></div></div><button class=\"ds-result-best\" aria-label=\"回看最准的一针：景山公园\"><span>最准一针<strong>景山公园</strong></span><b>320 m</b><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M4 12h16M14 6l6 6-6 6\"/></svg></button></section>",
-      "css": ".ds-result-summary{position: relative; isolation: isolate; overflow: hidden; border: 1px solid #e7cebd; background: var(--accent-soft,#f7e8df); border-radius: 14px; padding: 18px 16px 0;}.ds-result-route{position: absolute; top: 0; right: 0; width: 100%; height: 56px; color: var(--accent,#ae3e2b); pointer-events: none; z-index: -1;}.ds-result-route path{stroke-width: 1;}.ds-route-base{stroke: #e4c5b1;}.ds-route-ink{stroke: currentColor; stroke-opacity: 0.25;}.ds-result-route circle{fill: var(--accent-soft,#f7e8df); stroke: #c77d60; stroke-width: 1.5;}.ds-result-headline{position: relative; width: fit-content; max-width: 100%; background: var(--accent-soft,#f7e8df); padding-right: 8px; font-size: 16px; line-height: 1.45; color: var(--accent-dark,#8f2e20); font-weight: 600;}.ds-result-score-row{display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 10px; align-items: center; margin: 17px 0 19px;}.ds-result-score > span{display: block; font-size: 12px; color: #814638;}.ds-result-score > strong{display: block; font-size: clamp(23px, 6.7vw, 30px); line-height: 1.3; color: var(--accent-dark,#8f2e20); letter-spacing: -0.035em; margin-top: 5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;}.ds-result-seal{display: flex; flex-direction: column; align-items: center; justify-content: center; width: 70px; min-height: 75px; padding: 5px 0; border: 3px double var(--accent,#ae3e2b); border-radius: 9px; color: var(--accent-dark,#8f2e20); transform: rotate(-7deg);}.ds-result-seal > span:not(.ds-result-rank){font-size: 9px; letter-spacing: 0.08em;}.ds-result-rank{font-size: 10px; line-height: 1.3; white-space: nowrap;}.ds-result-rank b{font-size: 28px; font-weight: 700;}.ds-result-best{position: relative; display: flex; align-items: center; gap: 7px; min-height: 56px; width: 100%; padding: 10px 0; border-top: 1px dashed #c99e82; color: var(--accent-dark,#8f2e20); background: transparent; text-align: left;}.ds-result-best > span{flex: 1; min-width: 0; font-size: 10px;}.ds-result-best strong{display: block; font-size: 12px; overflow-wrap: anywhere;}.ds-result-best b{font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums;}.ds-result-best:hover{color: var(--ink,#252c2b);}.ds-result-summary{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-result-headline{margin:0;}.ds-result-best{border-right:0;border-bottom:0;border-left:0;cursor:pointer;}.ds-result-best:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}"
+      "description": "静态示例数据；真实界面提交后立即可见个人成绩，最终排名尚未公布。",
+      "html": "<section class=\"ds-result\"><h2>北京，又熟悉了一点</h2><span>你的总误差</span><strong>2.40 km</strong><p>已提交，最终排名待公布</p></section>",
+      "css": ".ds-result{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;padding:20px 16px;border:2px solid #d8bd70;background:#fff5ce;color:var(--ink,#202d44);}.ds-result h2{font-size:16px;color:var(--accent-ink,#795409);margin:0 0 18px;}.ds-result>span{font-size:12px;color:#596577;}.ds-result>strong{display:block;color:var(--accent-ink,#795409);font-size:30px;margin-top:5px;}.ds-result p{font-size:12px;color:var(--muted,#57657b);margin:18px 0 0;}"
     }
   ],
   "narrative": {
-    "northStar": "城市记忆地图",
-    "overview": "米白底承托真实地图，深墨文字说明当前任务，朱红强调落点、选择与主操作。保持轻量、清楚的中文界面，让手机玩家随时知道正在猜什么、下一步按哪里；房主与现场大屏沿用同一套视觉语言。\n\n本文记录当前实现。色彩与字体以 frontmatter 为提取基准，运行实现来源为 `src/styles.css`；组件内的固定尺寸并不表示已建立独立 CSS token。sidecar 的合成色阶仅供设计面板预览，不是应用中已有的色阶。",
+    "northStar": "像素北京街机",
+    "overview": "浅天空蓝界面与奶白面板承托真实地图，深海军蓝中文保证可读，金黄指向当前操作与关键成绩。北京城楼天际线、像素表情和方形关卡按钮带来街机感，中文与地图保持清晰。",
     "keyCharacteristics": [
-      "米白表面、深墨文字、朱红动作重点。",
-      "真实无文字高德底图与清楚区分的猜测点、真实点。",
-      "手机底部任务面板、桌面侧栏、独立观众大屏。",
-      "短句、可触控按钮和可见的当前题与主操作。"
+      "浅蓝奶白表面、金黄动作、薄荷绿完成状态。",
+      "原创SVG像素天际线与表情，本地像素数字字体。",
+      "手机底部面板、桌面侧栏、大屏三题榜单。",
+      "提交立即看个人成绩，全局揭晓再公布排名。"
     ],
     "rules": [],
     "dos": [
-      "Do 保留中文、当前题、下一步动作与明确等待状态。",
-      "Do 用真实无文字高德地图，并保持版权与关键标记可见。",
-      "Do 检查手机安全区、短屏、长名称、键盘焦点和减少动效偏好。",
-      "Do 让玩家、房主和现场大屏共享色彩与组件语言，分别适配各自布局。"
+      "Do 保持中文可读，触控区域至少44px。",
+      "Do 使用实际面板尺寸进行地图避让。",
+      "Do 区分个人提交成绩与全场最终排名。",
+      "Do 尊重减少动态效果，保留真实地图与版权。"
     ],
     "donts": [
-      "Don't 用颜色作为选中、完成或失败的唯一信息。",
-      "Don't 将主操作藏进折叠菜单，或让长内容挤掉操作区。",
-      "Don't 在服务端确认前显示操作成功，或把缺失成绩显示为零。",
-      "Don't 用虚构累加成绩或重复庆祝遮挡结果；不要把新建房间描述为原房续局。",
-      "Don't 将本文、截图或组件预览当成真实地图及完整游戏流程验收。"
+      "Don't 将暗色主题和旧圆润票据混回当前亮色像素界面。",
+      "Don't 在普通玩家入口提供建房或重开。",
+      "Don't 暴露未公开的其他玩家答案或把缺失成绩当零分。",
+      "Don't 将文档或截图视为完整游戏和30人真实设备验收。"
     ]
   }
 }
