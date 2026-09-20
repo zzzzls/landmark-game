@@ -21,7 +21,11 @@ export function Roster({ players = [], phase }) {
                   ? "未提交"
                   : "作答中";
         return (
-          <li key={p.id} data-ready={ready && p.connected ? "true" : undefined} data-submitted={p.submitted ? "true" : undefined}>
+          <li
+            key={p.id}
+            data-ready={ready && p.connected ? "true" : undefined}
+            data-submitted={p.submitted ? "true" : undefined}
+          >
             <span className="avatar" style={{ "--player-color": p.color }}>
               {p.name.slice(0, 1)}
             </span>
@@ -67,7 +71,14 @@ export function Leaderboard({ board = [], selfRank }) {
     </ol>
   );
 }
-export function Contribute({ references = [], you, preview, onPick, onRemove, disabled }) {
+export function Contribute({
+  references = [],
+  you,
+  preview,
+  onPick,
+  onRemove,
+  disabled,
+}) {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState({ status: "idle", items: [] });
   const [nonce, setNonce] = useState(0);
@@ -109,10 +120,13 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
     };
   }, [q, nonce]);
   return (
-    <section className="contribute-panel" aria-label="贡献地点">
+    <section
+      className="contribute-panel floating-contribute"
+      aria-label="贡献地点"
+    >
       {places.length < 2 && (
         <>
-          <label className="search-label" htmlFor="place-search">
+          <label className="search-label sr-only" htmlFor="place-search">
             找一个你熟悉的北京地点
           </label>
           <div className="search-field">
@@ -122,11 +136,17 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="试试天坛、北海公园…"
+              placeholder="搜索北京地点"
               autoComplete="off"
               enterKeyHint="search"
               disabled={disabled}
             />
+            <span
+              className="contribution-count"
+              aria-label={`已出题 ${places.length}/2`}
+            >
+              {places.length}/2
+            </span>
           </div>
           {search.status === "loading" && (
             <p role="status" className="search-state">
@@ -149,10 +169,13 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
           )}
           {!!search.items.length && (
             <ul className="search-results" aria-label="搜索结果">
-              {search.items.map((p, i) => (
-                <li key={`${p.name}-${i}`}>
+              {search.items.slice(0, 3).map((p, i) => (
+                <li key={`${q}-${p.name}-${i}`} style={{ "--result-index": i }}>
                   <button
-                    disabled={disabled || references.some(ref => isReferencePlace(p, ref))}
+                    disabled={
+                      disabled ||
+                      references.some((ref) => isReferencePlace(p, ref))
+                    }
                     onClick={() => {
                       onPick(p);
                       setQ("");
@@ -162,7 +185,11 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
                     <Icon name="pin" />
                     <span>
                       <strong>{p.name}</strong>
-                      <small>{references.some(ref => isReferencePlace(p, ref)) ? "公共参照地标，请换一个地点" : p.address || "北京"}</small>
+                      <small>
+                        {references.some((ref) => isReferencePlace(p, ref))
+                          ? "公共参照地标，请换一个地点"
+                          : p.address || "北京"}
+                      </small>
                     </span>
                     <Icon name="arrow" size={16} />
                   </button>
@@ -179,10 +206,7 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
               <span className="slot-number">
                 {places[i] ? <Icon name="check" size={17} /> : i + 1}
               </span>
-              <span>
-                {places[i]?.name || "等待你添加一个地点"}
-                {places[i] && <small>已加入本局题库</small>}
-              </span>
+              <span>{places[i]?.name || `地点 ${i + 1}`}</span>
               {places[i] && (
                 <button
                   className="icon-btn"
@@ -200,7 +224,7 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
       {places.length === 2 && (
         <p className="success-note">
           <Icon name="check" />
-          准备好了，等房主开始！
+          已准备，等待开局
         </p>
       )}
     </section>
@@ -209,11 +233,15 @@ export function Contribute({ references = [], you, preview, onPick, onRemove, di
 export { PersonalResults } from "./Results.jsx";
 
 export function isReferencePlace(place, reference) {
-  const normalize = name => name.replace(/\s/g, "").toLowerCase();
+  const normalize = (name) => name.replace(/\s/g, "").toLowerCase();
   if (normalize(place.name) === normalize(reference.name)) return true;
   const rad = Math.PI / 180;
   const lat = (place.lat - reference.lat) * rad;
   const lng = (place.lng - reference.lng) * rad;
-  const a = Math.sin(lat / 2) ** 2 + Math.cos(place.lat * rad) * Math.cos(reference.lat * rad) * Math.sin(lng / 2) ** 2;
+  const a =
+    Math.sin(lat / 2) ** 2 +
+    Math.cos(place.lat * rad) *
+      Math.cos(reference.lat * rad) *
+      Math.sin(lng / 2) ** 2;
   return 6371000 * 2 * Math.asin(Math.sqrt(Math.min(1, a))) <= 50;
 }

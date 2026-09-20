@@ -190,26 +190,6 @@
 .winner-distance > span { display: block; font-size: 11px; color: #c2cbd5; }
 .winner-distance > strong { color: var(--accent); display: block; font-size: 25px; margin-top: 3px; }
 
-/* Keep the 205px phone console: the cursor occupies no layout space. */
-.answer-progress .target-tabs { position: relative; }
-.answer-progress .target-tabs::after {
-  content: "";
-  position: absolute;
-  height: 3px;
-  width: calc((100% - 16px) / 3);
-  left: 0;
-  bottom: -3px;
-  background: var(--accent);
-  transform: translateX(calc(var(--active-slot, 0) * (100% + 8px)));
-  transition: transform 180ms var(--ease);
-  pointer-events: none;
-}
-.answer-progress .target-tabs button { border-color: #c3cdd3; }
-.answer-progress .target-tabs button[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
-.answer-progress .target-tabs button[data-confirmed="true"] { background: #e4f0e8; }
-.answer-progress .target-tabs button[data-confirmed="true"] svg { animation: confirmed-slot 180ms var(--ease); }
-@keyframes confirmed-slot { from { transform: scale(.65); } to { transform: scale(1); } }
-
 /* The spectator stage uses the same pass and colors, at viewing distance. */
 .screen-header { border-bottom: 3px solid var(--ink); }
 .screen-rail {
@@ -404,6 +384,4 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .winner-spotlight.is-celebrating .winner-emblem > svg { animation: none; }
-  .answer-progress .target-tabs::after { transition: none; }
-  .answer-progress .target-tabs button[data-confirmed="true"] svg { animation: none; }
 }

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const BASE = process.env.PLAYTEST_BASE_URL || "http://localhost:5173";
@@ -44,7 +44,11 @@ function observeRoom(page, role) {
     socket.on("framereceived", ({ payload }) => {
       try {
         const state = JSON.parse(String(payload));
-        if (state.type === "state" && (!role || new URL(socket.url()).pathname.endsWith(`/${role}`))) observed.current = state;
+        if (
+          state.type === "state" &&
+          (!role || new URL(socket.url()).pathname.endsWith(`/${role}`))
+        )
+          observed.current = state;
         if (state.type === "session") observed.session = state;
       } catch {
         /* Ignore non-state transport frames. */
@@ -120,22 +124,32 @@ async function mapReady(page) {
 async function enter(page, role, name) {
   await page.goto(role === "admin" ? "/admin" : "/");
   await page.getByLabel("你的昵称").fill(name);
-  await page.getByRole("button", {
-    name: role === "admin" ? "进入控制台" : "加入游戏", exact: true,
-  }).click();
-  await expect(page).toHaveURL(new RegExp(`${role === "admin" ? "/admin" : "/"}\\?name=`));
+  await page
+    .getByRole("button", {
+      name: role === "admin" ? "进入控制台" : "加入游戏",
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(
+    new RegExp(`${role === "admin" ? "/admin" : "/"}\\?name=`),
+  );
 }
 
 async function dismissGuide(page) {
   // The guide is shown only once per browser context, including across rounds.
-  const seen = await page.evaluate(() => !!localStorage.getItem("lg-guide-seen"));
+  const seen = await page.evaluate(
+    () => !!localStorage.getItem("lg-guide-seen"),
+  );
   if (!seen) await closeGuide(page);
 }
 
 async function joined(page) {
   await expect(page.locator(".game-room")).toBeVisible();
   await dismissGuide(page);
-  await expect(page.locator(".game-room")).not.toHaveAttribute("data-phase", "connecting");
+  await expect(page.locator(".game-room")).not.toHaveAttribute(
+    "data-phase",
+    "connecting",
+  );
   await mapReady(page);
 }
 
@@ -147,7 +161,10 @@ async function createRoom(page, name = "测试房主") {
   await joined(page);
   const restart = page.getByRole("button", { name: "重开一局", exact: true });
   if (await restart.isVisible()) await restart.click();
-  await expect(page.locator(".game-room")).toHaveAttribute("data-phase", "lobby");
+  await expect(page.locator(".game-room")).toHaveAttribute(
+    "data-phase",
+    "lobby",
+  );
   await mapReady(page);
   // A disconnected administrator seat is reclaimed (including its nickname
   // change). Remove that previous scenario's draft contributions through UI.
@@ -163,7 +180,9 @@ async function createRoom(page, name = "测试房主") {
 async function joinRoom(page, _code, name) {
   await enter(page, "player", name);
   await joined(page);
-  await expect(page.getByRole("button", { name: /创建房间|重开一局|再开一局/ })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /创建房间|重开一局|再开一局/ }),
+  ).toHaveCount(0);
 }
 
 async function contribute(page, query) {
@@ -175,6 +194,7 @@ async function contribute(page, query) {
   await expect(results.getByRole("button").first()).toBeVisible({
     timeout: 25_000,
   });
+  expect(await results.getByRole("button").count()).toBeLessThanOrEqual(3);
   await results.getByRole("button").filter({ hasText: query }).first().click();
   await expect(
     page.getByRole("button", { name: "添加这个地点", exact: true }),
@@ -188,23 +208,24 @@ async function startRoom(page) {
   const dialog = page.getByRole("dialog", { name: "现在开始这局？" });
   if (await dialog.isVisible())
     await dialog.getByRole("button", { name: "开始游戏", exact: true }).click();
-  await expect(page.locator(".game-room")).toHaveAttribute("data-phase", "playing");
+  await expect(page.locator(".game-room")).toHaveAttribute(
+    "data-phase",
+    "playing",
+  );
 }
 
 async function mapPoint(page, offset = 0) {
-  // Derive a real uncovered coordinate; never invoke AMap internals or inject pins.
-  const panel = await page.locator(".task-panel").boundingBox();
-  const caption = await page.locator(".map-caption").boundingBox();
   const viewport = page.viewportSize();
-  const top = caption ? caption.y + caption.height + 24 : 160;
-  const bottom = Math.min(panel.y - 24, viewport.height - 100);
+  const tasks = await page.locator(".map-tasks").boundingBox();
+  const top = tasks.y + tasks.height + 32;
+  const bottom = viewport.height - 70;
   expect(
     bottom - top,
-    "The phone must retain a usable map above the task panel",
+    "Floating controls must leave usable map space",
   ).toBeGreaterThan(60);
   return {
-    x: Math.min(viewport.width - 55, 145 + offset),
-    y: top + (bottom - top) * 0.48,
+    x: Math.min(viewport.width - 55, 125 + offset),
+    y: Math.round(top + (bottom - top) * 0.5),
   };
 }
 
@@ -224,13 +245,15 @@ async function answerAll(page) {
       .getByRole("button", { name: new RegExp(`^第${index}题 `) })
       .click();
     await confirmMapPin(page, index * 30);
-    await expect(page.locator(".answer-count")).toContainText(
-      `已确认 ${index}/3`,
-    );
+    if (index < 3)
+      await expect(page.locator(".answer-count")).toContainText(
+        `已确认 ${index}/3`,
+      );
   }
+  await expect(page.locator(".personal-results")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "提交全部答案", exact: true }),
-  ).toBeEnabled();
+  ).toHaveCount(0);
 }
 
 async function noHorizontalOverflow(page) {
@@ -244,109 +267,89 @@ async function noHorizontalOverflow(page) {
   );
 }
 
-async function compactAnswerLayout(page, role) {
-  const panel = page.locator(".answer-panel");
-  const title = page.locator(".answer-title");
-  const actions = page.locator(".answer-actions");
+async function floatingAnswerLayout(page, role) {
+  const tasks = page.locator(".map-tasks");
+  const title = page.locator(".question-name").first();
   const originalSize = page.viewportSize();
   for (const viewport of [
     { width: 360, height: 844 },
     { width: 390, height: 844 },
     { width: 430, height: 844 },
     { width: 390, height: 568 },
+    { width: 1440, height: 1080 },
   ]) {
     await page.setViewportSize(viewport);
     await stableMapLayout(page);
-    await expect(panel).toBeVisible();
-    await expect(page.getByRole("button", { name: /展开详情|收起详情/ })).toHaveCount(0);
-    await expect(page.locator(".answer-progress")).toBeInViewport();
-    await expect(title).toBeInViewport();
-    await expect(actions).toBeInViewport();
+    await expect(page.locator(".task-panel")).toHaveCount(0);
+    await expect(page.locator(".question-tabs > button")).toHaveCount(3);
+    await expect(tasks).toBeInViewport();
     await expect(page.locator(".answer-count")).toContainText("已确认 0/3");
     await expect(page.locator(".mk-reference")).toHaveCount(4);
     await expect(page.locator(".amap-copyright")).toBeVisible();
     await noHorizontalOverflow(page);
-    const before = await panel.boundingBox();
-    expect(before.height).toBeGreaterThanOrEqual(180);
-    expect(before.height).toBeLessThanOrEqual(role === "admin" ? 270 : 218);
-    expect((await actions.boundingBox()).height).toBeGreaterThanOrEqual(52);
-    if (role === "admin") {
+    const before = await tasks.boundingBox();
+    const map = await page.locator(".map-pane").boundingBox();
+    expect(map.width).toBe(viewport.width);
+    expect(map.height).toBe(viewport.height);
+    if (role === "admin")
       for (const name of ["房间管理", "我的答题"])
-        await expect(page.getByRole("button", { name, exact: true })).toBeInViewport();
-    }
-    // A real tap near the lower map edge exercises the map's measured avoidance.
-    const point = await mapPoint(page);
-    await page.touchscreen.tap(point.x, Math.round(before.y - 28));
+        await expect(
+          page.getByRole("button", { name, exact: true }),
+        ).toBeInViewport();
+    // Bottom-right must flip controls left, without moving the actual guess.
+    await page.touchscreen.tap(viewport.width - 25, viewport.height - 65);
     const confirm = page.getByRole("button", { name: "确认位置", exact: true });
-    await expect(confirm).toBeVisible();
     await expect(confirm).toBeInViewport();
-    await expect(page.getByRole("button", { name: "取消", exact: true })).toBeInViewport();
-    await stableMapLayout(page);
-    expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
-    await capture(page, `${role}-answer-preview-${viewport.width}x${viewport.height}`);
-    await page.getByRole("button", { name: "取消", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "取消预览", exact: true }),
+    ).toBeInViewport();
+    await expect(page.locator(".map-anchor")).toHaveAttribute(
+      "data-side",
+      "left",
+    );
+    const button = await confirm.boundingBox();
+    expect(Math.round(button.width * 100) / 100).toBeGreaterThanOrEqual(44);
+    expect(Math.round(button.height * 100) / 100).toBeGreaterThanOrEqual(44);
+    expect((await tasks.boundingBox()).height).toBe(before.height);
+    await capture(
+      page,
+      `${role}-answer-preview-${viewport.width}x${viewport.height}`,
+    );
+    await page.getByRole("button", { name: "取消预览", exact: true }).click();
     await expect(confirm).not.toBeVisible();
     await expect(page.locator(".answer-count")).toContainText("已确认 0/3");
-    expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
-
-    // Layout-only stress fixture: do not change React game state, server answers,
-    // or the real AMap instance. Restore the exact DOM before the next UI action.
-    const originalText = await title.textContent();
+    const original = await title.textContent();
     try {
-      await title.evaluate(el => { el.textContent = "北京奥林匹克森林公园南园南门"; });
-      const normal = await title.evaluate(el => ({
-        height: el.getBoundingClientRect().height,
+      await title.evaluate((el) => {
+        el.textContent = "北京超长地点名称布局测试".repeat(14);
+      });
+      const long = await title.evaluate((el) => ({
+        clientHeight: el.clientHeight,
         scrollHeight: el.scrollHeight,
-        lineHeight: parseFloat(getComputedStyle(el).lineHeight),
-      }));
-      expect(normal.height).toBeGreaterThanOrEqual(normal.lineHeight * 2 - 1);
-      expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
-      await title.evaluate(el => { el.textContent = "北京超长地点名称布局测试".repeat(14); });
-      const long = await title.evaluate(el => ({
-        clientHeight: el.clientHeight, scrollHeight: el.scrollHeight,
         overflowY: getComputedStyle(el).overflowY,
       }));
       expect(long.scrollHeight).toBeGreaterThan(long.clientHeight);
-      expect(["auto", "scroll"]).toContain(long.overflowY);
-      await expect(actions).toBeInViewport();
-      await expect(page.locator(".answer-progress")).toBeInViewport();
+      expect(long.overflowY).toBe("auto");
+      expect((await tasks.boundingBox()).height).toBe(before.height);
       await noHorizontalOverflow(page);
-      expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
     } finally {
-      await title.evaluate((el, text) => { el.textContent = text; }, originalText);
+      await title.evaluate((el, text) => {
+        el.textContent = text;
+      }, original);
     }
   }
-  await page.setViewportSize(originalSize);
-  await stableMapLayout(page);
-  const baseHeight = (await panel.boundingBox()).height;
-  const initialSafe = await panel.evaluate(el => el.style.getPropertyValue("--safe-b"));
-  try {
-    await panel.evaluate(el => el.style.setProperty("--safe-b", "24px"));
-    expect((await panel.boundingBox()).height - baseHeight).toBe(24);
-  } finally {
-    await panel.evaluate((el, value) => {
-      if (value) el.style.setProperty("--safe-b", value);
-      else el.style.removeProperty("--safe-b");
-    }, initialSafe);
-  }
-  await title.focus();
-  await expect(title).toBeFocused();
-  await expect(title).toBeInViewport();
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const transitions = await page.locator(".answer-progress .target-tabs button").evaluateAll(buttons =>
-    buttons.map(button => getComputedStyle(button).transitionDuration));
+  const transitions = await page
+    .locator(".question-tabs *")
+    .evaluateAll((elements) =>
+      elements.map((el) => getComputedStyle(el).transitionDuration),
+    );
   for (const duration of transitions)
-    expect(duration.split(",").every(value => parseFloat(value) <= 0.00001)).toBe(true);
+    expect(
+      duration.split(",").every((value) => parseFloat(value) <= 0.00001),
+    ).toBe(true);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.setViewportSize({ width: 1440, height: 1080 });
-  await expect(page.locator(".task-subtitle")).toBeVisible();
-  await expect(page.locator(".answer-count")).not.toBeVisible();
-  await expect(page.getByRole("group", { name: "选择题目", exact: true })).toBeVisible();
-  await expect(title).toBeVisible();
-  await noHorizontalOverflow(page);
-  await capture(page, `${role}-answer-desktop-1440`);
   await page.setViewportSize(originalSize);
-  await stableMapLayout(page);
 }
 
 async function pinsInsideVisibleMap(page, panelSelector) {
@@ -355,23 +358,29 @@ async function pinsInsideVisibleMap(page, panelSelector) {
     .poll(
       async () =>
         page.evaluate((panelSelector) => {
-          const obstacle = document
-            .querySelector(panelSelector)
+          const thumbnail = document.querySelector(".map-thumbnail");
+          const obstacle =
+            document.querySelector(panelSelector)?.getBoundingClientRect() ||
+            document.querySelector(".map-tasks")?.getBoundingClientRect();
+          const mapBounds = document
+            .querySelector(".map-pane")
             .getBoundingClientRect();
           const header = document
             .querySelector(".room-top, .screen-header")
             .getBoundingClientRect();
-          const pins = [...document.querySelectorAll(".mk-dot,.mk-label")]
-            .filter(pin => !pin.closest(".mk-reference"));
+          const pins = [
+            ...document.querySelectorAll(".mk-dot,.mk-label"),
+          ].filter((pin) => !pin.closest(".mk-reference"));
           if (!pins.length) return ["No markers"];
           return pins.flatMap((pin) => {
             const r = pin.getBoundingClientRect();
             const onScreen =
-              r.left >= 0 &&
-              r.right <= innerWidth &&
-              r.top >= header.bottom &&
-              r.bottom <= innerHeight;
+              r.left >= mapBounds.left &&
+              r.right <= mapBounds.right &&
+              r.top >= (thumbnail ? mapBounds.top : header.bottom) &&
+              r.bottom <= mapBounds.bottom;
             const covered =
+              obstacle &&
               r.right > obstacle.left &&
               r.left < obstacle.right &&
               r.bottom > obstacle.top &&
@@ -382,8 +391,8 @@ async function pinsInsideVisibleMap(page, panelSelector) {
                   {
                     text: pin.textContent,
                     box: { x: r.x, y: r.y, width: r.width, height: r.height },
-                    panelTop: obstacle.top,
-                    panelLeft: obstacle.left,
+                    panelTop: obstacle?.top,
+                    panelLeft: obstacle?.left,
                   },
                 ];
           });
@@ -410,54 +419,82 @@ async function trackSockets(page) {
     window.WebSocket = class extends NativeSocket {
       constructor(...args) {
         super(...args);
-        if (String(args[0]).includes("/ws/")) window.__testRoomSockets.push(this);
+        if (String(args[0]).includes("/ws/"))
+          window.__testRoomSockets.push(this);
       }
     };
   });
 }
 async function interruptNetwork(client) {
   await client.context.setOffline(true);
-  await client.page.evaluate(() => window.__testRoomSockets.forEach(socket => socket.close()));
+  await client.page.evaluate(() =>
+    window.__testRoomSockets.forEach((socket) => socket.close()),
+  );
   await expect(client.page.locator(".connection-banner").first()).toBeVisible();
 }
 async function submit(page) {
-  await page.getByRole("button", { name: "提交全部答案", exact: true }).click();
   await expect(page.locator(".personal-results")).toBeVisible();
 }
 function distanceText(meters) {
-  return meters < 1000 ? `${Math.round(meters)} 米` : `${(meters / 1000).toFixed(2)} 公里`;
+  return meters < 1000
+    ? `${Math.round(meters)} 米`
+    : `${(meters / 1000).toFixed(2)} 公里`;
 }
 function separationMeters(a, b) {
-  const radians = value => value * Math.PI / 180;
+  const radians = (value) => (value * Math.PI) / 180;
   const dLat = radians(a.lat - b.lat);
   const dLng = radians(a.lng - b.lng);
-  const haversine = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.lat)) * Math.cos(radians(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 6371000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  const haversine =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(radians(a.lat)) *
+      Math.cos(radians(b.lat)) *
+      Math.sin(dLng / 2) ** 2;
+  return (
+    6371000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+  );
 }
 async function referenceLandmarks(page, observed) {
   await expect.poll(() => observed.current?.references?.length).toBe(4);
-  expect(observed.current.references.map(place => place.name).sort()).toEqual(["天安门", "鸟巢", "北京西站", "国贸"].sort());
+  expect(observed.current.references.map((place) => place.name).sort()).toEqual(
+    ["天安门", "鸟巢", "北京西站", "国贸"].sort(),
+  );
   await expect(page.locator(".mk-reference")).toHaveCount(4);
   for (const place of observed.current.references) {
     expect(Number.isFinite(place.lng) && Number.isFinite(place.lat)).toBe(true);
-    await expect(page.locator(".mk-reference").filter({ hasText: place.name })).toContainText(place.emoji);
+    await expect(
+      page.locator(".mk-reference").filter({ hasText: place.name }),
+    ).toContainText(place.emoji);
   }
 }
 async function ownResults(page, observed) {
   await expect.poll(() => observed.current?.you.results?.length).toBe(3);
   const you = observed.current.you;
-  expect(you.results.every(result => Number.isFinite(result.distance_m))).toBe(true);
-  expect(you.totalError).toBe(you.results.reduce((sum, result) => sum + result.distance_m, 0));
+  expect(
+    you.results.every((result) => Number.isFinite(result.distance_m)),
+  ).toBe(true);
+  expect(you.totalError).toBe(
+    you.results.reduce((sum, result) => sum + result.distance_m, 0),
+  );
   for (const result of you.results) {
     for (const reference of observed.current.references) {
-      expect(result.name.replace(/\s/g, "").toLowerCase()).not.toBe(reference.name.replace(/\s/g, "").toLowerCase());
-      expect(separationMeters(result, reference), "Public orientation landmarks must not become answers").toBeGreaterThan(50);
+      expect(result.name.replace(/\s/g, "").toLowerCase()).not.toBe(
+        reference.name.replace(/\s/g, "").toLowerCase(),
+      );
+      expect(
+        separationMeters(result, reference),
+        "Public orientation landmarks must not become answers",
+      ).toBeGreaterThan(50);
     }
   }
-  await expect(page.locator(".result-summary")).toContainText(distanceText(you.totalError));
+  await expect(page.locator(".result-summary")).toContainText(
+    distanceText(you.totalError),
+  );
   await expect(page.locator(".result-list > li")).toHaveCount(3);
   for (const result of you.results) {
-    const row = page.getByRole("button", { name: `查看${result.name}的结果`, exact: true });
+    const row = page.getByRole("button", {
+      name: `查看${result.name}的结果`,
+      exact: true,
+    });
     await expect(row).toContainText(distanceText(result.distance_m));
   }
 }
@@ -471,12 +508,17 @@ async function assertFresh(observed, oldCode) {
   expect(observed.current.you.results).toBeUndefined();
 }
 
-test("waiting players and screen follow create, private immediate scores, final three-place board and restart", async ({ browser }) => {
+test("waiting players and screen follow create, private immediate scores, final three-place board and restart", async ({
+  browser,
+}) => {
   const host = await mobile(browser);
   const first = await mobile(browser);
   const second = await mobile(browser, 430);
   await trackSockets(second.page);
-  const screenContext = await browser.newContext({ baseURL: BASE, viewport: { width: 1920, height: 1080 } });
+  const screenContext = await browser.newContext({
+    baseURL: BASE,
+    viewport: { width: 1920, height: 1080 },
+  });
   const screen = await screenContext.newPage();
   watchErrors(screen);
   const hostState = observeRoom(host.page);
@@ -485,10 +527,19 @@ test("waiting players and screen follow create, private immediate scores, final 
   const screenState = observeRoom(screen, "screen");
   try {
     await enter(first.page, "player", "胡同探索员");
-    await expect(first.page.getByRole("heading", { name: "等待管理员创建房间", exact: true })).toBeVisible();
-    await expect(first.page.getByRole("button", { name: /创建房间|重开一局/ })).toHaveCount(0);
+    await expect(
+      first.page.getByRole("heading", {
+        name: "等待管理员创建房间",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      first.page.getByRole("button", { name: /创建房间|重开一局/ }),
+    ).toHaveCount(0);
     await screen.goto("/screen");
-    await expect(screen.getByRole("heading", { name: "等待管理员创建房间", exact: true })).toBeVisible();
+    await expect(
+      screen.getByRole("heading", { name: "等待管理员创建房间", exact: true }),
+    ).toBeVisible();
     await capture(first.page, "player-waiting-390");
     await capture(screen, "screen-waiting-1920");
     await createRoom(host.page);
@@ -503,10 +554,15 @@ test("waiting players and screen follow create, private immediate scores, final 
     expect(screenState.current.room).toBe(code);
     await capture(host.page, "host-lobby-390");
     await capture(screen, "screen-lobby-1920");
-    const inviteQr = screen.getByRole("img", { name: "扫码加入游戏", exact: true });
+    const inviteQr = screen.getByRole("img", {
+      name: "扫码加入游戏",
+      exact: true,
+    });
     await expect(inviteQr).toBeVisible();
     const inviteUrl = await inviteQr.locator("title").textContent();
-    expect(new URL(inviteUrl).hostname).not.toMatch(/^(localhost|127\.|198\.1[89]\.)/);
+    expect(new URL(inviteUrl).hostname).not.toMatch(
+      /^(localhost|127\.|198\.1[89]\.)/,
+    );
     await contribute(first.page, "天坛");
     await contribute(first.page, "故宫");
     await contribute(second.page, "北海");
@@ -518,77 +574,119 @@ test("waiting players and screen follow create, private immediate scores, final 
     await expect(first.page.locator(".guide-dialog")).not.toBeVisible();
     await startRoom(host.page);
     for (const client of [first, second])
-      await expect(client.page.locator(".game-room")).toHaveAttribute("data-phase", "playing");
+      await expect(client.page.locator(".game-room")).toHaveAttribute(
+        "data-phase",
+        "playing",
+      );
     await expect.poll(() => firstState.current?.you.targets?.length).toBe(3);
-    expect(firstState.current.you.targets.every(target => !("lng" in target) && !("lat" in target))).toBe(true);
+    expect(
+      firstState.current.you.targets.every(
+        (target) => !("lng" in target) && !("lat" in target),
+      ),
+    ).toBe(true);
     for (const target of firstState.current.you.targets)
-      expect(firstState.current.references.map(place => place.name)).not.toContain(target.name);
+      expect(
+        firstState.current.references.map((place) => place.name),
+      ).not.toContain(target.name);
     expect(screenState.current.truePins).toBeUndefined();
     await noHorizontalOverflow(first.page);
-    await compactAnswerLayout(first.page, "player");
+    await floatingAnswerLayout(first.page, "player");
     await capture(first.page, "player-guessing-390");
     const point = await mapPoint(first.page);
     const gesture = await first.context.newCDPSession(first.page);
-    await gesture.send("Input.synthesizeScrollGesture", { x: Math.round(point.x), y: Math.round(point.y), xDistance: 45, yDistance: 18, gestureSourceType: "touch", preventFling: true });
-    await gesture.send("Input.synthesizePinchGesture", { x: Math.round(point.x), y: Math.round(point.y), scaleFactor: 1.25, gestureSourceType: "touch", relativeSpeed: 400 });
+    await gesture.send("Input.synthesizeScrollGesture", {
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+      xDistance: 45,
+      yDistance: 18,
+      gestureSourceType: "touch",
+      preventFling: true,
+    });
+    await gesture.send("Input.synthesizePinchGesture", {
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+      scaleFactor: 1.25,
+      gestureSourceType: "touch",
+      relativeSpeed: 400,
+    });
     await gesture.detach();
     await first.page.waitForTimeout(150); // Real map's post-drag tap guard.
-    await expect(first.page.getByRole("button", { name: "确认位置", exact: true })).not.toBeVisible();
-    await answerAll(first.page);
+    await expect(
+      first.page.getByRole("button", { name: "确认位置", exact: true }),
+    ).not.toBeVisible();
+    // Editing is possible before the third confirmation; cancel preserves the saved point.
+    await confirmMapPin(first.page);
+    await confirmMapPin(first.page, 30);
     await first.page.getByRole("button", { name: /^第1题 / }).click();
     await first.page.getByRole("button", { name: "撤销", exact: true }).click();
-    await expect(first.page.locator(".answer-count")).toContainText("已确认 2/3");
-    await expect(first.page.getByRole("button", { name: "提交全部答案", exact: true })).not.toBeVisible();
+    await expect(first.page.locator(".answer-count")).toContainText(
+      "已确认 1/3",
+    );
     await confirmMapPin(first.page, 90);
     await first.page.getByRole("button", { name: /^第1题 / }).click();
     const savedGuesses = JSON.stringify(firstState.current.you.guesses);
-    const allConfirmedHeight = (await first.page.locator(".answer-panel").boundingBox()).height;
-    const submitBounds = await first.page.getByRole("button", { name: "提交全部答案", exact: true }).boundingBox();
     const revisedPoint = await mapPoint(first.page, 120);
     await first.page.touchscreen.tap(revisedPoint.x, revisedPoint.y);
-    await expect(first.page.getByRole("button", { name: "确认位置", exact: true })).toBeVisible();
-    await expect(first.page.getByRole("button", { name: "提交全部答案", exact: true })).not.toBeVisible();
-    expect((await first.page.locator(".answer-panel").boundingBox()).height).toBe(allConfirmedHeight);
-    const confirmBounds = await first.page.getByRole("button", { name: "确认位置", exact: true }).boundingBox();
-    expect(confirmBounds.x).toBe(submitBounds.x);
-    expect(confirmBounds.width).toBe(submitBounds.width);
-    await first.page.getByRole("button", { name: "取消", exact: true }).click();
-    await expect(first.page.getByRole("button", { name: "提交全部答案", exact: true })).toBeVisible();
+    await first.page
+      .getByRole("button", { name: "取消预览", exact: true })
+      .click();
     expect(JSON.stringify(firstState.current.you.guesses)).toBe(savedGuesses);
-    await capture(first.page, "player-answer-all-confirmed-390");
-    await confirmMapPin(first.page, 120);
     await first.page.reload();
     await mapReady(first.page);
-    await expect(first.page.locator(".answer-count")).toContainText("已确认 3/3");
+    await expect(first.page.locator(".answer-count")).toContainText(
+      "已确认 2/3",
+    );
+    await first.page.getByRole("button", { name: /^第3题 / }).click();
+    await confirmMapPin(first.page, 120);
     await submit(first.page);
     await ownResults(first.page, firstState);
-    await expect(first.page.locator(".game-room")).toHaveAttribute("data-phase", "playing");
-    await expect(first.page.locator(".result-challenge")).toContainText("最终排名待公布");
-    await expect(first.page.locator(".result-rank,.leaderboard")).toHaveCount(0);
-    await expect(first.page.locator(".mk-true")).toHaveCount(3);
+    await expect(first.page.locator(".game-room")).toHaveAttribute(
+      "data-phase",
+      "playing",
+    );
+    await expect(first.page.locator(".result-challenge")).toContainText(
+      "最终排名待公布",
+    );
+    await expect(first.page.locator(".result-rank,.leaderboard")).toHaveCount(
+      0,
+    );
+    await expect(first.page.locator(".mk-true")).toHaveCount(1);
     await expect.poll(() => screenState.current?.screenPins?.length).toBe(1);
     for (const observed of [firstState, secondState, hostState, screenState]) {
       expect(observed.current.phase).toBe("playing");
       expect(observed.current.leaderboard).toEqual([]);
       expect(observed.current.playerResults).toBeUndefined();
-      expect(observed.current.players.every(player => player.totalError === null)).toBe(true);
+      expect(
+        observed.current.players.every((player) => player.totalError === null),
+      ).toBe(true);
     }
     expect(secondState.current.you.results).toBeUndefined();
     expect(hostState.current.you.results).toBeUndefined();
     expect(screenState.current.truePins).toBeUndefined();
-    await expect(second.page.locator(".mk-true,.personal-results")).toHaveCount(0);
+    await expect(second.page.locator(".mk-true,.personal-results")).toHaveCount(
+      0,
+    );
     await expect(screen.locator(".mk-true,.screen-results")).toHaveCount(0);
     await capture(first.page, "player-submitted-private-390");
     await answerAll(second.page);
     await submit(second.page);
     for (const client of [host, first, second])
-      await expect(client.page.locator(".game-room")).toHaveAttribute("data-phase", "reveal");
+      await expect(client.page.locator(".game-room")).toHaveAttribute(
+        "data-phase",
+        "reveal",
+      );
     await expect.poll(() => screenState.current?.phase).toBe("reveal");
     await ownResults(second.page, secondState);
-    const scored = screenState.current.playerResults.filter(row => row.submitted);
+    const scored = screenState.current.playerResults.filter(
+      (row) => row.submitted,
+    );
     expect(scored).toHaveLength(2);
     for (const player of scored) {
-      const row = screen.locator(".screen-result-row").filter({ has: screen.locator(".screen-result-player > strong", { hasText: player.name }) });
+      const row = screen.locator(".screen-result-row").filter({
+        has: screen.locator(".screen-result-player > strong", {
+          hasText: player.name,
+        }),
+      });
       await expect(row).toHaveCount(1);
       await expect(row.locator(".screen-result-places > div")).toHaveCount(3);
       for (const result of player.results) {
@@ -596,7 +694,7 @@ test("waiting players and screen follow create, private immediate scores, final 
         await expect(row).toContainText(distanceText(result.distance_m));
       }
     }
-    const scores = screenState.current.leaderboard.map(row => row.totalError);
+    const scores = screenState.current.leaderboard.map((row) => row.totalError);
     expect(scores).toEqual([...scores].sort((a, b) => a - b));
     await pinsInsideVisibleMap(second.page, ".task-panel");
     await pinsInsideVisibleMap(screen, ".screen-rail");
@@ -607,20 +705,32 @@ test("waiting players and screen follow create, private immediate scores, final 
       await pinsInsideVisibleMap(first.page, ".task-panel");
       await capture(first.page, `player-results-${width}`);
     }
-    await first.page.getByRole("button", { name: /^查看.*的结果$/ }).first().click();
+    await first.page
+      .getByRole("button", { name: /^查看.*的结果$/ })
+      .first()
+      .click();
     await expect(first.page.locator(".mk-true")).toHaveCount(1);
     await pinsInsideVisibleMap(first.page, ".task-panel");
     await capture(first.page, "player-result-detail-430");
-    await first.page.getByRole("button", { name: "查看成绩与排名", exact: true }).click();
-    await expect(first.page.locator(".mk-true")).toHaveCount(3);
+    await first.page
+      .getByRole("button", { name: "返回成绩", exact: true })
+      .click();
+    await expect(first.page.locator(".mk-true")).toHaveCount(1);
     // One client misses the entire restart broadcast; its session reconnect must
     // still select the new current room and discard old answers automatically.
     await interruptNetwork(second);
-    await host.page.getByRole("button", { name: "重开一局", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "重开一局", exact: true })
+      .click();
     await assertFresh(firstState, code);
     await assertFresh(hostState, code);
-    await expect.poll(() => screenState.current?.room).toBe(firstState.current.room);
-    await expect(screen.locator(".screen-page")).toHaveAttribute("data-phase", "lobby");
+    await expect
+      .poll(() => screenState.current?.room)
+      .toBe(firstState.current.room);
+    await expect(screen.locator(".screen-page")).toHaveAttribute(
+      "data-phase",
+      "lobby",
+    );
     await second.context.setOffline(false);
     await assertFresh(secondState, code);
     await expect(second.page.locator(".connection-banner")).toHaveCount(0);
@@ -629,14 +739,25 @@ test("waiting players and screen follow create, private immediate scores, final 
     await second.page.reload();
     await mapReady(second.page);
     expect(secondState.current.room).toBe(firstState.current.room);
-    expect(secondState.current.players.find(player => player.id === secondState.current.you.id).name).toBe("方向感特别好的北京朋友");
+    expect(
+      secondState.current.players.find(
+        (player) => player.id === secondState.current.you.id,
+      ).name,
+    ).toBe("方向感特别好的北京朋友");
     await capture(first.page, "player-restarted-430");
   } finally {
-    await Promise.all([host.context.close(), first.context.close(), second.context.close(), screenContext.close()]);
+    await Promise.all([
+      host.context.close(),
+      first.context.close(),
+      second.context.close(),
+      screenContext.close(),
+    ]);
   }
 });
 
-test("solo participating administrator sees truthful first-frame results and preserves reduced motion", async ({ browser }) => {
+test("solo participating administrator sees truthful first-frame results and preserves reduced motion", async ({
+  browser,
+}) => {
   const host = await mobile(browser, 360);
   const state = observeRoom(host.page);
   const observeSettlement = () => {
@@ -645,66 +766,120 @@ test("solo participating administrator sees truthful first-frame results and pre
     new MutationObserver(() => {
       const panel = document.querySelector(".personal-results");
       if (panel && !window.__settlementEvidence.first)
-        window.__settlementEvidence.first = panel.querySelector(".result-summary")?.textContent;
+        window.__settlementEvidence.first =
+          panel.querySelector(".result-summary")?.textContent;
       const active = !!panel?.classList.contains("is-celebrating");
-      if (active && !celebrating) window.__settlementEvidence.celebrationStarts++;
+      if (active && !celebrating)
+        window.__settlementEvidence.celebrationStarts++;
       celebrating = active;
     }).observe(document, { childList: true, subtree: true, attributes: true });
   };
   try {
     await createRoom(host.page, "单人房主");
-    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
     await contribute(host.page, "天坛");
     await contribute(host.page, "故宫");
-    await host.page.getByRole("button", { name: "房间管理", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "房间管理", exact: true })
+      .click();
     await startRoom(host.page);
-    await expect(host.page.getByRole("button", { name: "我的答题", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      host.page.getByRole("button", { name: "我的答题", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     expect(state.current.you.targets).toHaveLength(3);
-    expect(state.current.you.targets.every(target => target.id.startsWith("pool_"))).toBe(true);
-    expect(state.current.you.targets.some(target => ["天坛", "故宫"].includes(target.name))).toBe(false);
-    await compactAnswerLayout(host.page, "admin");
+    expect(
+      state.current.you.targets.every((target) =>
+        target.id.startsWith("pool_"),
+      ),
+    ).toBe(true);
+    expect(
+      state.current.you.targets.some((target) =>
+        ["天坛", "故宫"].includes(target.name),
+      ),
+    ).toBe(false);
+    await floatingAnswerLayout(host.page, "admin");
     await capture(host.page, "solo-guessing-360");
-    await answerAll(host.page);
     await host.page.evaluate(observeSettlement);
     await host.page.addInitScript(observeSettlement);
+    await answerAll(host.page);
     await submit(host.page);
-    await expect(host.page.locator(".game-room")).toHaveAttribute("data-phase", "reveal");
+    await expect(host.page.locator(".game-room")).toHaveAttribute(
+      "data-phase",
+      "reveal",
+    );
     await ownResults(host.page, state);
     const total = distanceText(state.current.you.totalError);
-    await expect.poll(() => host.page.evaluate(() => window.__settlementEvidence.celebrationStarts)).toBe(1);
-    expect(await host.page.evaluate(() => window.__settlementEvidence.first)).toContain(total);
+    await expect
+      .poll(() =>
+        host.page.evaluate(() => window.__settlementEvidence.celebrationStarts),
+      )
+      .toBe(1);
+    expect(
+      await host.page.evaluate(() => window.__settlementEvidence.first),
+    ).toContain(total);
     await expect(host.page.locator(".result-rank b")).toHaveText("1");
-    await expect(host.page.locator(".personal-results")).not.toHaveClass(/is-celebrating/);
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
     await pinsInsideVisibleMap(host.page, ".task-panel");
     await capture(host.page, "solo-results-360");
-    await host.page.getByRole("button", { name: "房间管理", exact: true }).click();
-    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
-    await expect(host.page.locator(".personal-results")).not.toHaveClass(/is-celebrating/);
+    await host.page
+      .getByRole("button", { name: "房间管理", exact: true })
+      .click();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
     await host.page.reload();
     await mapReady(host.page);
-    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
     await expect(host.page.locator(".result-summary")).toContainText(total);
-    await expect(host.page.locator(".personal-results")).not.toHaveClass(/is-celebrating/);
-    expect(await host.page.evaluate(() => window.__settlementEvidence.celebrationStarts)).toBe(0);
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
+    expect(
+      await host.page.evaluate(
+        () => window.__settlementEvidence.celebrationStarts,
+      ),
+    ).toBe(0);
     await host.page.emulateMedia({ reducedMotion: "reduce" });
-    const motion = await host.page.locator(".personal-results").evaluate(panel => {
-      // Inspect the celebration selectors under the real reduced-motion media
-      // preference; applying the class changes no game state or score.
-      panel.classList.add("is-celebrating");
-      const values = [panel, ...panel.querySelectorAll("*")].flatMap(element => [null, "::before", "::after"].map(pseudo => {
-        const style = getComputedStyle(element, pseudo);
-        return [style.animationDuration, style.transitionDuration];
-      })).flat();
-      panel.classList.remove("is-celebrating");
-      return values;
-    });
-    for (const value of motion) expect(value.split(",").every(duration => parseFloat(duration) <= 0.00001)).toBe(true);
+    const motion = await host.page
+      .locator(".personal-results")
+      .evaluate((panel) => {
+        // Inspect the celebration selectors under the real reduced-motion media
+        // preference; applying the class changes no game state or score.
+        panel.classList.add("is-celebrating");
+        const values = [panel, ...panel.querySelectorAll("*")]
+          .flatMap((element) =>
+            [null, "::before", "::after"].map((pseudo) => {
+              const style = getComputedStyle(element, pseudo);
+              return [style.animationDuration, style.transitionDuration];
+            }),
+          )
+          .flat();
+        panel.classList.remove("is-celebrating");
+        return values;
+      });
+    for (const value of motion)
+      expect(
+        value.split(",").every((duration) => parseFloat(duration) <= 0.00001),
+      ).toBe(true);
     await noHorizontalOverflow(host.page);
     await capture(host.page, "solo-results-reduced-motion-360");
-  } finally { await host.context.close(); }
+  } finally {
+    await host.context.close();
+  }
 });
 
-test("early reveal, late spectator and network recovery keep incomplete results honest", async ({ browser }) => {
+test("early reveal, late spectator and network recovery keep incomplete results honest", async ({
+  browser,
+}) => {
   const host = await mobile(browser);
   const player = await mobile(browser);
   const spectator = await mobile(browser, 360);
@@ -718,66 +893,137 @@ test("early reveal, late spectator and network recovery keep incomplete results 
     await contribute(player.page, "颐和园");
     await startRoom(host.page);
     await confirmMapPin(player.page);
-    await expect(player.page.locator(".answer-count")).toContainText("已确认 1/3");
+    await expect(player.page.locator(".answer-count")).toContainText(
+      "已确认 1/3",
+    );
     await player.page.getByRole("button", { name: /^第1题 / }).click();
     await interruptNetwork(player);
     await expect(player.page.locator(".map-pane")).not.toHaveClass(/clickable/);
-    await expect(player.page.getByRole("button", { name: /^第1题 / })).toBeDisabled();
-    await expect(player.page.getByRole("button", { name: "撤销", exact: true })).toBeDisabled();
+    await expect(
+      player.page.getByRole("button", { name: /^第1题 / }),
+    ).toBeDisabled();
+    await expect(
+      player.page.getByRole("button", { name: "撤销", exact: true }),
+    ).toBeDisabled();
     await player.context.setOffline(false);
     await expect(player.page.locator(".connection-banner")).toHaveCount(0);
     await mapReady(player.page);
-    await expect(player.page.locator(".answer-count")).toContainText("已确认 1/3");
+    await expect(player.page.locator(".answer-count")).toContainText(
+      "已确认 1/3",
+    );
     await joinRoom(spectator.page, null, "迟到的朋友");
-    await expect(spectator.page.getByRole("heading", { name: "本局旁观", exact: true })).toBeVisible();
+    await expect(
+      spectator.page.getByRole("heading", { name: "本局旁观", exact: true }),
+    ).toBeVisible();
     expect(spectatorState.current.you.targets || []).toEqual([]);
-    await expect(spectator.page.locator(".target-tabs")).toHaveCount(0);
+    await expect(spectator.page.locator(".question-tabs")).toHaveCount(0);
     await noHorizontalOverflow(spectator.page);
     await capture(spectator.page, "late-spectator-360");
-    await host.page.getByRole("button", { name: "提前揭晓", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "提前揭晓", exact: true })
+      .click();
     const dialog = host.page.getByRole("dialog", { name: "提前揭晓答案？" });
     await expect(dialog).toContainText("未提交者不计入排名");
     await dialog.getByRole("button", { name: "再等等", exact: true }).click();
-    await expect(host.page.locator(".game-room")).toHaveAttribute("data-phase", "playing");
-    await host.page.getByRole("button", { name: "提前揭晓", exact: true }).click();
+    await expect(host.page.locator(".game-room")).toHaveAttribute(
+      "data-phase",
+      "playing",
+    );
+    await host.page
+      .getByRole("button", { name: "提前揭晓", exact: true })
+      .click();
     await dialog.getByRole("button", { name: "确认揭晓", exact: true }).click();
-    await expect(player.page.locator(".game-room")).toHaveAttribute("data-phase", "reveal");
+    await expect(player.page.locator(".game-room")).toHaveAttribute(
+      "data-phase",
+      "reveal",
+    );
     await expandDetails(player.page);
-    await expect(player.page.locator(".result-summary")).toContainText("未计入排名");
+    await expect(player.page.locator(".result-summary")).toContainText(
+      "未计入排名",
+    );
     await expect(player.page.locator(".leaderboard")).toHaveCount(0);
     expect(state.current.you.totalError).toBeNull();
-    expect(state.current.you.results.every(result => result.distance_m === null)).toBe(true);
-    await expect(spectator.page.locator(".result-summary")).toContainText("本局旁观");
-    await expect(spectator.page.locator(".result-detail-heading")).toHaveCount(0);
+    expect(
+      state.current.you.results.every((result) => result.distance_m === null),
+    ).toBe(true);
+    await expect(spectator.page.locator(".result-summary")).toContainText(
+      "本局旁观",
+    );
+    await expect(spectator.page.locator(".result-detail-heading")).toHaveCount(
+      0,
+    );
     await capture(player.page, "early-reveal-incomplete-390");
-  } finally { await Promise.all([host.context.close(), player.context.close(), spectator.context.close()]); }
+  } finally {
+    await Promise.all([
+      host.context.close(),
+      player.context.close(),
+      spectator.context.close(),
+    ]);
+  }
 });
 
-test("fixed nickname entry, guide and pixel layouts at phone and desktop sizes", async ({ browser }) => {
+test("fixed nickname entry, guide and pixel layouts at phone and desktop sizes", async ({
+  browser,
+}) => {
   const phone = await mobile(browser);
   try {
     await phone.page.goto("/");
-    await expect(phone.page.getByLabel("房间号", { exact: true })).toHaveCount(0);
-    await expect(phone.page.getByRole("button", { name: /创建房间|重开一局/ })).toHaveCount(0);
-    await phone.page.getByRole("button", { name: "加入游戏", exact: true }).click();
+    await expect(phone.page.getByLabel("房间号", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      phone.page.getByRole("button", { name: /创建房间|重开一局/ }),
+    ).toHaveCount(0);
+    await phone.page
+      .getByRole("button", { name: "加入游戏", exact: true })
+      .click();
     await expect(phone.page.getByRole("alert")).toContainText("取一个昵称");
-    await phone.page.getByRole("button", { name: "怎么玩", exact: true }).click();
-    await expect(phone.page.getByRole("heading", { name: "先出两道题", exact: true })).toBeVisible();
-    await phone.page.getByRole("button", { name: "下一步", exact: true }).click();
-    await expect(phone.page.getByRole("heading", { name: "凭记忆，猜三个点", exact: true })).toBeVisible();
-    await phone.page.getByRole("button", { name: "下一步", exact: true }).click();
-    await expect(phone.page.getByRole("dialog")).toContainText("立即查看自己的真实位置与总误差");
-    await phone.page.getByRole("button", { name: "开始探索", exact: true }).click();
+    await phone.page
+      .getByRole("button", { name: "怎么玩", exact: true })
+      .click();
+    await expect(
+      phone.page.getByRole("heading", { name: "先出两道题", exact: true }),
+    ).toBeVisible();
+    await phone.page
+      .getByRole("button", { name: "下一步", exact: true })
+      .click();
+    await expect(
+      phone.page.getByRole("heading", {
+        name: "凭记忆，猜三个点",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await phone.page
+      .getByRole("button", { name: "下一步", exact: true })
+      .click();
+    await expect(phone.page.getByRole("dialog")).toContainText(
+      "立即查看自己的真实位置与总误差",
+    );
+    await phone.page
+      .getByRole("button", { name: "开始探索", exact: true })
+      .click();
     await phone.page.getByLabel("你的昵称").fill("入口测试");
     await phone.page.emulateMedia({ reducedMotion: "reduce" });
-    for (const [width, height] of [[360, 844], [390, 844], [430, 844], [1280, 720], [1440, 1080], [1920, 1080]]) {
+    for (const [width, height] of [
+      [360, 844],
+      [390, 844],
+      [430, 844],
+      [1280, 720],
+      [1440, 1080],
+      [1920, 1080],
+    ]) {
       await phone.page.setViewportSize({ width, height });
       await noHorizontalOverflow(phone.page);
-      await expect(phone.page.getByRole("button", { name: "加入游戏", exact: true })).toBeInViewport();
-      const scenery = await phone.page.locator(".session-hero").evaluate(el => ({
-        textBottom: el.querySelector(".home-intro").getBoundingClientRect().bottom,
-        cityTop: el.querySelector(".hero-city").getBoundingClientRect().top,
-      }));
+      await expect(
+        phone.page.getByRole("button", { name: "加入游戏", exact: true }),
+      ).toBeInViewport();
+      const scenery = await phone.page
+        .locator(".session-hero")
+        .evaluate((el) => ({
+          textBottom: el.querySelector(".home-intro").getBoundingClientRect()
+            .bottom,
+          cityTop: el.querySelector(".hero-city").getBoundingClientRect().top,
+        }));
       expect(scenery.cityTop).toBeGreaterThanOrEqual(scenery.textBottom);
       await capture(phone.page, `home-${width}`);
     }
@@ -786,29 +1032,50 @@ test("fixed nickname entry, guide and pixel layouts at phone and desktop sizes",
     await noHorizontalOverflow(phone.page);
     await expect(phone.page.getByLabel("你的昵称")).toBeInViewport();
     await capture(phone.page, "home-short-screen-390");
-  } finally { await phone.context.close(); }
+  } finally {
+    await phone.context.close();
+  }
 });
 
-test("real map and search recover after failures, including short phone keyboard layout", async ({ browser }) => {
+test("real map and search recover after failures, including short phone keyboard layout", async ({
+  browser,
+}) => {
   const host = await mobile(browser);
   try {
     await createRoom(host.page, "恢复测试");
-    await host.page.route("**/api/map-config", route => route.fulfill({ json: { jsKey: "" } }));
+    await host.page.route("**/api/map-config", (route) =>
+      route.fulfill({ json: { jsKey: "" } }),
+    );
     await host.page.reload();
-    await expect(host.page.locator(".overlay-error")).toContainText("尚未配置高德地图 Key");
+    await expect(host.page.locator(".overlay-error")).toContainText(
+      "尚未配置高德地图 Key",
+    );
     await host.page.unroute("**/api/map-config");
     await host.page.locator(".overlay-retry").click();
     await mapReady(host.page);
-    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
-    await host.page.route("**/api/search?*", route => route.abort());
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await host.page.route("**/api/search?*", (route) => route.abort());
     await host.page.getByRole("searchbox").fill("天坛");
     await expect(host.page.getByRole("alert")).toContainText("搜索失败");
     await host.page.unroute("**/api/search?*");
-    await host.page.getByRole("button", { name: "重新搜索", exact: true }).click();
-    await expect(host.page.getByRole("list", { name: "搜索结果" }).getByRole("button").first()).toBeVisible();
-    await host.page.route("**/api/search?q=__empty__", route => route.fulfill({ json: [] }));
+    await host.page
+      .getByRole("button", { name: "重新搜索", exact: true })
+      .click();
+    await expect(
+      host.page
+        .getByRole("list", { name: "搜索结果" })
+        .getByRole("button")
+        .first(),
+    ).toBeVisible();
+    await host.page.route("**/api/search?q=__empty__", (route) =>
+      route.fulfill({ json: [] }),
+    );
     await host.page.getByRole("searchbox").fill("__empty__");
-    await expect(host.page.getByText("没有找到，试试更完整的地名。", { exact: true })).toBeVisible();
+    await expect(
+      host.page.getByText("没有找到，试试更完整的地名。", { exact: true }),
+    ).toBeVisible();
     await host.page.unroute("**/api/search?q=__empty__");
     await host.page.getByRole("searchbox").fill("");
     await host.page.setViewportSize({ width: 390, height: 500 });
@@ -816,26 +1083,65 @@ test("real map and search recover after failures, including short phone keyboard
     await expect(host.page.getByRole("searchbox")).toBeInViewport();
     await noHorizontalOverflow(host.page);
     await capture(host.page, "player-search-short-screen-390");
+    // Model the visible area changing independently of the layout viewport,
+    // as a mobile keyboard does; real AMap and search remain in use.
+    await host.page.evaluate(() => {
+      Object.defineProperty(window.visualViewport, "height", {
+        configurable: true,
+        value: 330,
+      });
+      window.visualViewport.dispatchEvent(new Event("resize"));
+    });
+    await host.page.getByRole("searchbox").fill("公园");
+    await expect(host.page.locator(".search-results li")).toHaveCount(3);
+    await expect
+      .poll(
+        async () =>
+          (await host.page.locator(".game-room").boundingBox()).height,
+      )
+      .toBe(330);
+    expect(
+      (await host.page.locator(".search-results").boundingBox()).y +
+        (await host.page.locator(".search-results").boundingBox()).height,
+    ).toBeLessThan(330);
+    await host.page.locator(".search-results button").first().click();
+    await expect(host.page.getByRole("searchbox")).not.toBeFocused();
+    await host.page.evaluate(() => {
+      delete window.visualViewport.height;
+      window.visualViewport.dispatchEvent(new Event("resize"));
+    });
+    await pinsInsideVisibleMap(host.page, ".map-tasks");
+    await host.page
+      .getByRole("button", { name: "取消预览", exact: true })
+      .click();
     await host.page.setViewportSize({ width: 390, height: 844 });
     await contribute(host.page, "天坛");
     await expect(host.page.locator(".place-slots .filled")).toHaveCount(1);
-  } finally { await host.context.close(); }
+  } finally {
+    await host.context.close();
+  }
 });
 
-test("participating administrator and player with equal nicknames retain separate personal scores", async ({ browser }) => {
+test("participating administrator and player with equal nicknames retain separate personal scores", async ({
+  browser,
+}) => {
   const host = await mobile(browser);
   const player = await mobile(browser);
   const hostState = observeRoom(host.page);
   const playerState = observeRoom(player.page);
   try {
     await createRoom(host.page, "同名朋友");
-    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
     await joinRoom(player.page, null, "同名朋友");
     await contribute(host.page, "天坛");
     await contribute(host.page, "故宫");
     await contribute(player.page, "北海");
     await contribute(player.page, "颐和园");
-    await host.page.getByRole("button", { name: "房间管理", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "房间管理", exact: true })
+      .click();
     await startRoom(host.page);
     expect(hostState.current.you.id).not.toBe(playerState.current.you.id);
     await answerAll(host.page);
@@ -844,24 +1150,41 @@ test("participating administrator and player with equal nicknames retain separat
     expect(playerState.current.you.results).toBeUndefined();
     await answerAll(player.page);
     await submit(player.page);
-    for (const [page, observed] of [[host.page, hostState], [player.page, playerState]]) {
-      await expect(page.locator(".game-room")).toHaveAttribute("data-phase", "reveal");
+    for (const [page, observed] of [
+      [host.page, hostState],
+      [player.page, playerState],
+    ]) {
+      await expect(page.locator(".game-room")).toHaveAttribute(
+        "data-phase",
+        "reveal",
+      );
       await ownResults(page, observed);
-      const row = observed.current.leaderboard.find(player => player.playerId === observed.current.you.id);
+      const row = observed.current.leaderboard.find(
+        (player) => player.playerId === observed.current.you.id,
+      );
       await pinsInsideVisibleMap(page, ".task-panel");
       await expect(page.locator(".result-rank b")).toHaveText(String(row.rank));
       await expect(page.locator(".leaderboard .is-you")).toHaveCount(1);
-      await expect(page.locator(".leaderboard .is-you strong")).toHaveText(distanceText(observed.current.you.totalError));
+      await expect(page.locator(".leaderboard .is-you strong")).toHaveText(
+        distanceText(observed.current.you.totalError),
+      );
     }
-  } finally { await Promise.all([host.context.close(), player.context.close()]); }
+  } finally {
+    await Promise.all([host.context.close(), player.context.close()]);
+  }
 });
 
-test("thirty seeded participants remain readable across every real screen result page", async ({ browser }) => {
+test("thirty seeded participants remain readable across every real screen result page", async ({
+  browser,
+}) => {
   // This bounded screen-volume fixture uses the actual room WebSocket protocol.
   // The preceding scenarios exercise all player actions through real UI/maps.
   const host = await mobile(browser);
   const hostState = observeRoom(host.page);
-  const screenContext = await browser.newContext({ baseURL: BASE, viewport: { width: 1920, height: 1080 } });
+  const screenContext = await browser.newContext({
+    baseURL: BASE,
+    viewport: { width: 1920, height: 1080 },
+  });
   const screen = await screenContext.newPage();
   const observed = observeRoom(screen, "screen");
   watchErrors(screen);
@@ -870,83 +1193,142 @@ test("thirty seeded participants remain readable across every real screen result
     const code = hostState.current.room;
     await screen.goto("/screen");
     await mapReady(screen);
-    await screen.evaluate(async code => {
+    await screen.evaluate(async (code) => {
       const seed = [];
       window.__screenSeed = seed;
-      const waitFor = (client, predicate) => new Promise((resolve, reject) => {
-        const start = performance.now();
-        function check() {
-          if (client.error) return reject(new Error(client.error));
-          if (predicate(client.state)) return resolve(client.state);
-          if (performance.now() - start > 15000) return reject(new Error("Screen fixture state timeout"));
-          setTimeout(check, 20);
-        }
-        check();
-      });
+      const waitFor = (client, predicate) =>
+        new Promise((resolve, reject) => {
+          const start = performance.now();
+          function check() {
+            if (client.error) return reject(new Error(client.error));
+            if (predicate(client.state)) return resolve(client.state);
+            if (performance.now() - start > 15000)
+              return reject(new Error("Screen fixture state timeout"));
+            setTimeout(check, 20);
+          }
+          check();
+        });
       window.__seedWait = waitFor;
       for (let i = 0; i < 30; i++) {
         const client = { state: null, error: null };
         const name = `${String(i + 1).padStart(2, "0")}号北京方向感挑战者`;
-        client.ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/${code}/player?name=${encodeURIComponent(name)}`);
+        client.ws = new WebSocket(
+          `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/${code}/player?name=${encodeURIComponent(name)}`,
+        );
         client.ws.onmessage = ({ data }) => {
           const message = JSON.parse(data);
           if (message.type === "state") client.state = message;
           if (message.type === "error") client.error = message.message;
         };
         seed.push(client);
-        await waitFor(client, state => !!state);
+        await waitFor(client, (state) => !!state);
         for (let n = 0; n < 2; n++) {
-          client.ws.send(JSON.stringify({ type: "contribute", name: `${name}的地点${n + 1}`, lng: 116.22 + i * .004, lat: 39.83 + n * .14 }));
-          await waitFor(client, state => state?.you.contribute.length === n + 1);
+          client.ws.send(
+            JSON.stringify({
+              type: "contribute",
+              name: `${name}的地点${n + 1}`,
+              lng: 116.22 + i * 0.004,
+              lat: 39.83 + n * 0.14,
+            }),
+          );
+          await waitFor(
+            client,
+            (state) => state?.you.contribute.length === n + 1,
+          );
         }
       }
     }, code);
     await startRoom(host.page);
     await screen.evaluate(async () => {
       for (const [index, client] of window.__screenSeed.entries()) {
-        await window.__seedWait(client, state => state?.phase === "playing");
+        await window.__seedWait(client, (state) => state?.phase === "playing");
         for (const [slot, target] of client.state.you.targets.entries()) {
-          client.ws.send(JSON.stringify({ type: "guess", targetId: target.id, lng: 116.3 + index * .002, lat: 39.9 + slot * .012 }));
-          await window.__seedWait(client, state => state.you.guesses.length === slot + 1);
+          client.ws.send(
+            JSON.stringify({
+              type: "guess",
+              targetId: target.id,
+              lng: 116.3 + index * 0.002,
+              lat: 39.9 + slot * 0.012,
+            }),
+          );
+          await window.__seedWait(
+            client,
+            (state) => state.you.guesses.length === slot + 1,
+          );
         }
         client.ws.send(JSON.stringify({ type: "submit" }));
-        await window.__seedWait(client, state => state.you.submitted);
+        await window.__seedWait(client, (state) => state.you.submitted);
       }
     });
-    await expect(screen.locator(".screen-page")).toHaveAttribute("data-phase", "reveal");
-    await expect.poll(() => observed.current?.playerResults?.filter(row => row.submitted).length).toBe(30);
+    await expect(screen.locator(".screen-page")).toHaveAttribute(
+      "data-phase",
+      "reveal",
+    );
+    await expect
+      .poll(
+        () =>
+          observed.current?.playerResults?.filter((row) => row.submitted)
+            .length,
+      )
+      .toBe(30);
     // On a 1080p stage the full six-person board and its controls must fit
     // together, rather than passing because Playwright scrolled to each row.
-    const stage = await screen.locator(".screen-rail").evaluate(el => ({ height: el.clientHeight, content: el.scrollHeight }));
+    const stage = await screen.locator(".screen-rail").evaluate((el) => ({
+      height: el.clientHeight,
+      content: el.scrollHeight,
+    }));
     expect(stage.content).toBeLessThanOrEqual(stage.height + 1);
-    await expect(screen.locator(".winner-spotlight")).toBeInViewport({ ratio: 1 });
-    await expect(screen.locator(".screen-pagination")).toBeInViewport({ ratio: 1 });
+    await expect(screen.locator(".winner-spotlight")).toBeInViewport({
+      ratio: 1,
+    });
+    await expect(screen.locator(".screen-pagination")).toBeInViewport({
+      ratio: 1,
+    });
     await screen.getByRole("button", { name: "暂停轮播", exact: true }).click();
     const allRows = observed.current.playerResults;
     const pages = Math.ceil(allRows.length / 6);
     // Real time matters here: neither pointer nor keyboard focus leaves the
     // control after resume, so a lingering hover/focus pause cannot hide.
-    await expect(screen.locator(".screen-pagination")).toContainText(`1 / ${pages} 页`);
+    await expect(screen.locator(".screen-pagination")).toContainText(
+      `1 / ${pages} 页`,
+    );
     await screen.waitForTimeout(11000);
-    await expect(screen.locator(".screen-pagination")).toContainText(`1 / ${pages} 页`);
+    await expect(screen.locator(".screen-pagination")).toContainText(
+      `1 / ${pages} 页`,
+    );
     await screen.getByRole("button", { name: "继续轮播", exact: true }).click();
-    await expect(screen.getByRole("button", { name: "暂停轮播", exact: true })).toBeFocused();
-    await expect(screen.locator(".screen-pagination")).toContainText(`2 / ${pages} 页`, { timeout: 13000 });
+    await expect(
+      screen.getByRole("button", { name: "暂停轮播", exact: true }),
+    ).toBeFocused();
+    await expect(screen.locator(".screen-pagination")).toContainText(
+      `2 / ${pages} 页`,
+      { timeout: 13000 },
+    );
     await screen.getByRole("button", { name: "暂停轮播", exact: true }).click();
     await screen.waitForTimeout(11000);
-    await expect(screen.locator(".screen-pagination")).toContainText(`2 / ${pages} 页`);
+    await expect(screen.locator(".screen-pagination")).toContainText(
+      `2 / ${pages} 页`,
+    );
     await screen.getByRole("button", { name: "上一页", exact: true }).click();
     const seen = new Set();
     for (let index = 0; index < pages; index++) {
-      await expect(screen.locator(".screen-pagination")).toContainText(`${index + 1} / ${pages} 页`);
+      await expect(screen.locator(".screen-pagination")).toContainText(
+        `${index + 1} / ${pages} 页`,
+      );
       const rows = allRows.slice(index * 6, index * 6 + 6);
-      await expect(screen.locator(".screen-result-row")).toHaveCount(rows.length);
+      await expect(screen.locator(".screen-result-row")).toHaveCount(
+        rows.length,
+      );
       for (const [offset, player] of rows.entries()) {
         const row = screen.locator(".screen-result-row").nth(offset);
-        await expect(row.locator(".screen-result-player > strong")).toHaveText(player.name);
+        await expect(row.locator(".screen-result-player > strong")).toHaveText(
+          player.name,
+        );
         await expect(row).toBeInViewport();
         if (player.submitted) {
-          await expect(row.locator(".screen-result-places > div")).toHaveCount(3);
+          await expect(row.locator(".screen-result-places > div")).toHaveCount(
+            3,
+          );
           for (const result of player.results) {
             await expect(row).toContainText(result.name);
             await expect(row).toContainText(distanceText(result.distance_m));
@@ -956,74 +1338,319 @@ test("thirty seeded participants remain readable across every real screen result
       }
       await noHorizontalOverflow(screen);
       await capture(screen, `screen-30-players-page-${index + 1}-1920`);
-      if (index + 1 < pages) await screen.getByRole("button", { name: "下一页", exact: true }).click();
+      if (index + 1 < pages)
+        await screen
+          .getByRole("button", { name: "下一页", exact: true })
+          .click();
     }
     expect(seen.size).toBe(30);
     await screen.getByRole("button", { name: "下一页", exact: true }).click();
-    await expect(screen.locator(".screen-pagination")).toContainText(`1 / ${pages} 页`);
+    await expect(screen.locator(".screen-pagination")).toContainText(
+      `1 / ${pages} 页`,
+    );
     await screen.getByRole("button", { name: "上一页", exact: true }).click();
-    await expect(screen.locator(".screen-pagination")).toContainText(`${pages} / ${pages} 页`);
+    await expect(screen.locator(".screen-pagination")).toContainText(
+      `${pages} / ${pages} 页`,
+    );
   } finally {
-    await screen.evaluate(() => window.__screenSeed?.forEach(client => client.ws.close())).catch(() => {});
+    await screen
+      .evaluate(() =>
+        window.__screenSeed?.forEach((client) => client.ws.close()),
+      )
+      .catch(() => {});
     await Promise.all([host.context.close(), screenContext.close()]);
   }
 });
 
-test("compact answer panel locks pending commands and preserves preview after server rejection", async ({ browser }) => {
-  const host = await mobile(browser);
+test("floating answer controls lock pending commands and preserve preview after server rejection", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    ...PHONE,
+    baseURL: BASE,
+    recordVideo: { dir: "artifacts/motion", size: { width: 390, height: 844 } },
+  });
+  const host = { context, page: await context.newPage() };
+  watchErrors(host.page);
+  let rejectSubmit = false,
+    disconnectSubmit = false,
+    submitCount = 0;
+  const observed = observeRoom(host.page);
+  await host.page.addInitScript(() => {
+    window.__motionEvidence = {};
+    const names = new Set([
+      "search-arrive",
+      "pin-drop",
+      "anchor-arrive",
+      "answer-check",
+      "result-arrive",
+      "seal-land",
+      "ink-spark",
+    ]);
+    function sample() {
+      for (const animation of document.getAnimations()) {
+        const element = animation.effect?.target;
+        const name =
+          animation.animationName ||
+          (element?.classList?.contains("question-highlight")
+            ? "question-highlight"
+            : "");
+        if (
+          (!names.has(name) && name !== "question-highlight") ||
+          animation.playState !== "running"
+        )
+          continue;
+        const entry = (window.__motionEvidence[name] ||= {
+          duration: animation.effect.getTiming().duration,
+          samples: [],
+        });
+        if (entry.samples.length < 90) {
+          const style = getComputedStyle(element);
+          entry.samples.push({
+            time: Math.round(animation.currentTime || 0),
+            transform: style.transform,
+            opacity: style.opacity,
+          });
+        }
+      }
+      requestAnimationFrame(sample);
+    }
+    requestAnimationFrame(sample);
+  });
   let holdReplies = false;
   let rejectNextGuess = false;
   const heldReplies = [];
   // Proxy the actual room connection. Only timing and one invalid target ID are
   // injected; acceptance/rejection still comes from the real backend rules.
-  await host.page.routeWebSocket(/\/ws\/[^/]+\/admin(?:\?|$)/, socket => {
+  await host.page.routeWebSocket(/\/ws\/[^/]+\/admin(?:\?|$)/, (socket) => {
     const server = socket.connectToServer();
-    server.onMessage(message => {
+    server.onMessage((message) => {
       if (holdReplies) heldReplies.push(() => socket.send(message));
       else socket.send(message);
     });
-    socket.onMessage(message => {
+    socket.onMessage((message) => {
       const command = JSON.parse(String(message));
+      if (command.type === "submit") {
+        submitCount++;
+        if (rejectSubmit) {
+          rejectSubmit = false;
+          server.send(
+            JSON.stringify({
+              type: "guess",
+              targetId: "test-invalid-submit",
+              lng: 116.4,
+              lat: 39.9,
+            }),
+          );
+          return;
+        }
+        if (disconnectSubmit) {
+          disconnectSubmit = false;
+          socket.close({ code: 1012, reason: "test recovery" });
+          server.close();
+          return;
+        }
+      }
       if (rejectNextGuess && command.type === "guess") {
         rejectNextGuess = false;
-        server.send(JSON.stringify({ ...command, targetId: "test-invalid-target" }));
+        server.send(
+          JSON.stringify({ ...command, targetId: "test-invalid-target" }),
+        );
       } else server.send(message);
     });
   });
   try {
     await createRoom(host.page, "确认状态测试");
-    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await host.page.getByRole("searchbox").fill("公园");
+    await expect(host.page.locator(".search-results li")).toHaveCount(3);
+    await capture(host.page, "floating-search-three-390");
+    await host.page.getByRole("searchbox").fill("");
     await contribute(host.page, "天坛");
     await contribute(host.page, "故宫");
-    await host.page.getByRole("button", { name: "房间管理", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "房间管理", exact: true })
+      .click();
     await startRoom(host.page);
     const point = await mapPoint(host.page);
     await host.page.touchscreen.tap(point.x, point.y);
+    await expect(host.page.locator(".map-anchor")).toBeVisible();
+    const anchorBefore = await host.page.locator(".map-anchor").boundingBox();
+    await host.page.mouse.move(35, point.y - 70);
+    await host.page.mouse.down();
+    await host.page.mouse.move(90, point.y - 20, { steps: 8 });
+    await host.page.mouse.up();
+    await expect
+      .poll(async () =>
+        Math.abs(
+          (await host.page.locator(".map-anchor").boundingBox()).y -
+            anchorBefore.y,
+        ),
+      )
+      .toBeGreaterThan(20);
+    await capture(host.page, "floating-preview-follow-map-390");
     rejectNextGuess = true;
-    await host.page.getByRole("button", { name: "确认位置", exact: true }).click();
+    await host.page
+      .getByRole("button", { name: "确认位置", exact: true })
+      .click();
     await expect(host.page.getByRole("alert")).toContainText("不是你的题目");
-    await expect(host.page.locator(".answer-count")).toContainText("已确认 0/3");
-    await expect(host.page.getByRole("button", { name: "确认位置", exact: true })).toBeEnabled();
+    await expect(host.page.locator(".answer-count")).toContainText(
+      "已确认 0/3",
+    );
+    await expect(
+      host.page.getByRole("button", { name: "确认位置", exact: true }),
+    ).toBeEnabled();
 
     holdReplies = true;
-    await host.page.getByRole("button", { name: "确认位置", exact: true }).click();
-    await expect(host.page.getByRole("button", { name: "正在确认…", exact: true })).toBeDisabled();
+    await host.page
+      .getByRole("button", { name: "确认位置", exact: true })
+      .click();
+    await expect(
+      host.page.getByRole("button", { name: "正在确认…", exact: true }),
+    ).toBeDisabled();
     await expect(host.page.locator(".map-pane")).not.toHaveClass(/clickable/);
-    await expect(host.page.getByRole("button", { name: "取消", exact: true })).toBeDisabled();
-    await expect(host.page.getByRole("button", { name: "房间管理", exact: true })).toBeDisabled();
-    const tabs = host.page.getByRole("group", { name: "选择题目", exact: true }).getByRole("button");
+    await expect(
+      host.page.getByRole("button", { name: "取消预览", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      host.page.getByRole("button", { name: "房间管理", exact: true }),
+    ).toBeDisabled();
+    const tabs = host.page
+      .getByRole("group", { name: "选择题目", exact: true })
+      .getByRole("button");
     for (const tab of await tabs.all()) await expect(tab).toBeDisabled();
-    await expect(host.page.locator(".answer-count")).toContainText("已确认 0/3");
+    await expect(host.page.locator(".answer-count")).toContainText(
+      "已确认 0/3",
+    );
     await expect.poll(() => heldReplies.length).toBeGreaterThan(0);
     holdReplies = false;
     for (const release of heldReplies.splice(0)) release();
-    await expect(host.page.locator(".answer-count")).toContainText("已确认 1/3");
-    await expect(host.page.getByRole("button", { name: /^第2题 / })).toHaveAttribute("aria-pressed", "true");
-    await expect(host.page.getByRole("button", { name: "确认位置", exact: true })).not.toBeVisible();
-    await expect(host.page.getByRole("button", { name: "房间管理", exact: true })).toBeEnabled();
+    await expect(host.page.locator(".answer-count")).toContainText(
+      "已确认 1/3",
+    );
+    await expect(
+      host.page.getByRole("button", { name: /^第2题 / }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      host.page.getByRole("button", { name: "确认位置", exact: true }),
+    ).not.toBeVisible();
+    await expect(
+      host.page.getByRole("button", { name: "房间管理", exact: true }),
+    ).toBeEnabled();
+    await confirmMapPin(host.page, 30);
+    rejectSubmit = true;
+    await confirmMapPin(host.page, 60);
+    await expect(
+      host.page.getByRole("button", { name: "重试提交", exact: true }),
+    ).toBeEnabled();
+    expect(submitCount).toBe(1);
+    await expect(host.page.locator(".personal-results")).toHaveCount(0);
+    expect(observed.current.you.guesses).toHaveLength(3);
+    // A second failure is a real transport close. Reconnect must not replay it.
+    disconnectSubmit = true;
+    await host.page
+      .getByRole("button", { name: "重试提交", exact: true })
+      .click();
+    await expect(
+      host.page.getByRole("button", { name: "重试提交", exact: true }),
+    ).toBeEnabled();
+    expect(submitCount).toBe(2);
+    const beforeReloadMotion = await host.page.evaluate(
+      () => window.__motionEvidence,
+    );
+    await host.page.reload();
+    await mapReady(host.page);
+    await expect(
+      host.page.getByRole("button", { name: "重试提交", exact: true }),
+    ).toBeEnabled();
+    expect(submitCount).toBe(2);
+    // No duplicate auto-submit was caused by reconnection or mount.
+    await host.page
+      .getByRole("button", { name: "重试提交", exact: true })
+      .click();
+    await ownResults(host.page, observed);
+    expect(submitCount).toBe(3);
+    await mapReady(host.page);
+    const best = observed.current.you.results.reduce((a, b) =>
+      a.distance_m <= b.distance_m ? a : b,
+    );
+    await expect(host.page.locator(".best-map-card")).toHaveAttribute(
+      "data-target-id",
+      best.id,
+    );
+    await expect(host.page.locator(".best-map-card")).toContainText(
+      distanceText(best.distance_m),
+    );
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
+    const motion = {
+      ...beforeReloadMotion,
+      ...(await host.page.evaluate(() => window.__motionEvidence)),
+    };
+    for (const name of [
+      "search-arrive",
+      "pin-drop",
+      "anchor-arrive",
+      "answer-check",
+      "question-highlight",
+      "result-arrive",
+      "seal-land",
+      "ink-spark",
+    ]) {
+      expect(
+        motion[name]?.samples.length,
+        `${name} must actually play`,
+      ).toBeGreaterThan(1);
+      expect(
+        new Set(motion[name].samples.map((frame) => frame.time)).size,
+      ).toBeGreaterThan(1);
+    }
+    await mkdir("artifacts/motion", { recursive: true });
+    await writeFile(
+      "artifacts/motion/playback.json",
+      JSON.stringify(motion, null, 2),
+    );
+    for (const viewport of [
+      { width: 390, height: 568 },
+      { width: 1440, height: 900 },
+    ]) {
+      await host.page.setViewportSize(viewport);
+      await expect(host.page.locator(".best-map-card")).toBeInViewport();
+      await pinsInsideVisibleMap(host.page, ".task-panel");
+      await capture(
+        host.page,
+        `result-best-map-${viewport.width}x${viewport.height}`,
+      );
+    }
+    await host.page.setViewportSize(PHONE.viewport);
+    await host.page.route("**/api/map-config", (route) =>
+      route.fulfill({ json: { jsKey: "" } }),
+    );
+    await host.page.reload();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await expect(
+      host.page.locator(".best-map-card .overlay-error"),
+    ).toBeVisible();
+    await expect(host.page.locator(".result-summary")).toContainText(
+      distanceText(observed.current.you.totalError),
+    );
+    await host.page.unroute("**/api/map-config");
+    await host.page.locator(".best-map-card .overlay-retry").click();
+    await mapReady(host.page);
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
+    await pinsInsideVisibleMap(host.page, ".task-panel");
+    await capture(host.page, "result-thumbnail-recovered-390");
   } finally {
     holdReplies = false;
     for (const release of heldReplies.splice(0)) release();
     await host.context.close();
+    await host.page.video().saveAs("artifacts/motion/floating-flow.webm");
   }
 });

@@ -34,14 +34,22 @@ function truncatePinName(s) {
   return t.length > 6 ? `${t.slice(0, 6)}…` : t;
 }
 
-function pinHtml({ name, label, tag, color, kind, preview: isPreview }) {
+function pinHtml({
+  name,
+  label,
+  tag,
+  color,
+  kind,
+  preview: isPreview,
+  coincident,
+}) {
   const c = color || "#C23A2B";
   const fallback = kind === "guess" ? "预览" : "";
   const text = escapeHtml(truncatePinName(name || label || fallback));
   const tagHtml = tag ? `<span class="mk-tag">${escapeHtml(tag)}</span>` : "";
   const kindClass =
     kind === "true" ? " mk-true" : kind === "guess" ? " mk-guess" : "";
-  const previewClass = isPreview ? " mk-preview" : "";
+  const previewClass = `${isPreview ? " mk-preview" : ""}${coincident ? " mk-coincident" : ""}`;
   return `<div class="mk${kindClass}${previewClass}" style="--pin:${escapeHtml(c)}"><span class="mk-dot"></span><span class="mk-label">${text}${tagHtml}</span></div>`;
 }
 
@@ -53,6 +61,8 @@ export default function MapView({
   clickable = false,
   onMapClick,
   onPreviewClick,
+  previewActions,
+  variant = "full",
   fitKey,
   fitPadding = [40, 40, 40, 40],
   onStatusChange,
@@ -61,8 +71,12 @@ export default function MapView({
   focusZoom = 12,
 }) {
   const elRef = useRef(null);
+  const actionRef = useRef(null);
+  const [anchor, setAnchor] = useState(null);
+  const compact = variant === "thumbnail";
   const mapRef = useRef(null);
   const overlayRef = useRef([]);
+  const previewMarkerRef = useRef(null);
   const referenceSignature = JSON.stringify(references);
   const clickableRef = useRef(clickable);
   const onClickRef = useRef(onMapClick);
@@ -138,6 +152,11 @@ export default function MapView({
           // A quick second pin must not start a zoom animation that can
           // outlive submission/reveal. Touch pinch and wheel zoom remain.
           doubleClickZoom: false,
+          dragEnable: !compact,
+          zoomEnable: !compact,
+          scrollWheel: !compact,
+          touchZoom: !compact,
+          keyboardEnable: !compact,
         });
         ownedMap = map;
         mapRef.current = map;
@@ -176,7 +195,7 @@ export default function MapView({
       mapRef.current = null;
       overlayRef.current = [];
     };
-  }, [nonce]);
+  }, [nonce, compact]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -219,15 +238,20 @@ export default function MapView({
     const AMap = window.AMap;
     if (!map || !AMap || status !== "ready") return;
     // Public orientation aids are separate from game overlays and fit bounds.
-    const markers = references.map(place => new AMap.Marker({
-      position: [place.lng, place.lat],
-      offset: new AMap.Pixel(-16, -16),
-      bubble: true,
-      zIndex: 60,
-      content: `<div class="mk-reference" data-reference-id="${escapeHtml(place.id)}" role="img" aria-label="公共参照：${escapeHtml(place.name)}"><span class="reference-emoji" aria-hidden="true">${escapeHtml(place.emoji)}</span><span class="reference-name">${escapeHtml(place.name)}<small>参照</small></span></div>`,
-    }));
+    const markers = references.map(
+      (place) =>
+        new AMap.Marker({
+          position: [place.lng, place.lat],
+          offset: new AMap.Pixel(-16, -16),
+          bubble: true,
+          zIndex: 60,
+          content: `<div class="mk-reference" data-reference-id="${escapeHtml(place.id)}" role="img" aria-label="公共参照：${escapeHtml(place.name)}"><span class="reference-emoji" aria-hidden="true">${escapeHtml(place.emoji)}</span><span class="reference-name">${escapeHtml(place.name)}<small>参照</small></span></div>`,
+        }),
+    );
     if (markers.length) map.add(markers);
-    return () => { if (mapRef.current === map) map.remove(markers); };
+    return () => {
+      if (mapRef.current === map) map.remove(markers);
+    };
   }, [referenceSignature, status, nonce]);
 
   useEffect(() => {
@@ -238,6 +262,7 @@ export default function MapView({
       map.remove(overlayRef.current);
       overlayRef.current = [];
     }
+    previewMarkerRef.current = null;
     const extras = [];
     for (const line of lines) {
       const from = line?.from;
@@ -281,11 +306,25 @@ export default function MapView({
       const marker = new AMap.Marker({
         position: [p.lng, p.lat],
         offset: new AMap.Pixel(-12, -12),
-        content: pinHtml({ ...p, preview: p.key === "preview" }),
+        content: pinHtml({
+          ...p,
+          coincident: all.some(
+            (other) =>
+              other !== p &&
+              other.lng === p.lng &&
+              other.lat === p.lat &&
+              other.kind !== p.kind,
+          ),
+          ...(compact
+            ? { name: "", label: p.kind === "guess" ? "猜" : "真", tag: "" }
+            : {}),
+          preview: p.key === "preview",
+        }),
         bubble: p.key !== "preview",
         zIndex: p.key === "preview" ? 140 : p.kind === "true" ? 120 : 110,
       });
       if (p.key === "preview") {
+        previewMarkerRef.current = marker;
         marker.on("click", () => {
           onPreviewClickRef.current?.();
         });
@@ -294,7 +333,7 @@ export default function MapView({
     }
     if (extras.length) map.add(extras);
     overlayRef.current = extras;
-  }, [overlaySignature, status]);
+  }, [overlaySignature, status, compact]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -320,7 +359,9 @@ export default function MapView({
         map.setFitView(
           extras,
           true,
-          [top + 16, bottom + 24, left + 16, right + 128],
+          compact
+            ? [top + 12, bottom + 20, left + 12, right + 46]
+            : [top + 16, bottom + 24, left + 16, right + 128],
           16,
         );
         lastFitRef.current = signature;
@@ -329,7 +370,7 @@ export default function MapView({
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [fitKey, paddingSignature, overlaySignature, status, mapSize]);
+  }, [fitKey, paddingSignature, overlaySignature, status, mapSize, compact]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -342,16 +383,39 @@ export default function MapView({
       preview.zoom === false
     )
       return;
-    try {
-      map.setZoomAndCenter(
-        PREVIEW_ZOOM,
-        [Number(preview.lng), Number(preview.lat)],
-        true,
-      );
-    } catch {
-      /* A later preview can retry viewport positioning. */
-    }
-  }, [preview?.lng, preview?.lat, preview?.zoom, status, fitKey]);
+    const frame = requestAnimationFrame(() => {
+      const marker = previewMarkerRef.current;
+      const element = elRef.current;
+      const size = map.getSize();
+      if (
+        !marker ||
+        !element ||
+        size.width !== element.clientWidth ||
+        size.height !== element.clientHeight
+      )
+        return;
+      try {
+        const [top, right, bottom, left] = fitPadding;
+        map.setFitView(
+          [marker],
+          true,
+          [top + 16, bottom + 24, left + 16, right + 110],
+          PREVIEW_ZOOM,
+        );
+      } catch {
+        /* A later preview or viewport resize can retry positioning. */
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    preview?.lng,
+    preview?.lat,
+    preview?.zoom,
+    status,
+    fitKey,
+    paddingSignature,
+    mapSize,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -365,13 +429,110 @@ export default function MapView({
     map.setZoomAndCenter(focusZoom, focusPoint, true);
   }, [focusKey, focusPoint?.[0], focusPoint?.[1], focusZoom, status, fitKey]);
 
+  // React owns the controls; AMap only projects the geographic anchor. Keep
+  // screen positioning on a wrapper so the entry animation never moves the pin.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || status !== "ready" || !preview || !previewActions) {
+      setAnchor(null);
+      return;
+    }
+    let frame;
+    function measure() {
+      const point = map.lngLatToContainer([preview.lng, preview.lat]);
+      const rect = elRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = actionRef.current?.offsetWidth || 104;
+      const height = actionRef.current?.offsetHeight || 48;
+      const x = point.getX(),
+        y = point.getY();
+      const side = x + 22 + width <= rect.width - 12 ? "right" : "left";
+      const visibleBottom = Math.min(
+        rect.height,
+        (window.visualViewport?.height || window.innerHeight) +
+          (window.visualViewport?.offsetTop || 0) -
+          rect.top,
+      );
+      const top = Math.min(
+        visibleBottom - height - 40,
+        Math.max(fitPadding[0], y - height / 2),
+      );
+      const left = Math.max(
+        12,
+        Math.min(
+          rect.width - width - 12,
+          side === "right" ? x + 22 : x - width - 22,
+        ),
+      );
+      // A dragged-offscreen point must not leave orphaned buttons on the edge.
+      const visible = x >= 0 && x <= rect.width && y >= 0 && y <= rect.height;
+      setAnchor((old) =>
+        old?.left === left &&
+        old?.top === top &&
+        old?.side === side &&
+        old?.visible === visible
+          ? old
+          : { left, top, side, visible },
+      );
+    }
+    function schedule() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    }
+    const events = ["mapmove", "zoomchange", "resize", "moveend", "zoomend"];
+    events.forEach((event) => map.on(event, schedule));
+    window.visualViewport?.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("scroll", schedule);
+    const observer = new ResizeObserver(schedule);
+    if (actionRef.current) observer.observe(actionRef.current);
+    schedule();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      events.forEach((event) => map.off(event, schedule));
+      window.visualViewport?.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("scroll", schedule);
+    };
+  }, [
+    preview?.lng,
+    preview?.lat,
+    !!previewActions,
+    paddingSignature,
+    status,
+    mapSize,
+  ]);
+
   function retry() {
     setNonce((n) => n + 1);
   }
 
   return (
-    <div className={`map-pane${clickable ? " clickable" : ""}`}>
+    <div
+      className={`map-pane${clickable ? " clickable" : ""}${compact ? " map-thumbnail" : ""}`}
+      data-map-status={status}
+    >
       <div ref={elRef} className="map" />
+      {previewActions && preview && (
+        <div
+          ref={actionRef}
+          className="map-anchor"
+          data-side={anchor?.side || "right"}
+          style={{
+            left: anchor?.left || 0,
+            top: anchor?.top || 0,
+            visibility: anchor?.visible ? "visible" : "hidden",
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div
+            key={`${preview.lng}:${preview.lat}`}
+            className="map-anchor-enter"
+          >
+            {previewActions}
+          </div>
+        </div>
+      )}
       {status === "loading" && <div className="overlay">正在加载北京地图…</div>}
       {status === "error" && (
         <div className="overlay overlay-error">

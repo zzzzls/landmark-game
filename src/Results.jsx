@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { formatDistance } from "./ws.js";
 import { Icon } from "./UI.jsx";
+import MapView from "./MapView.jsx";
+import { playerMapOverlays } from "./mapOverlays.js";
+import { bestResult } from "./answerFlow.js";
 
 // Celebration belongs to a completed round, not every visit to its scorecard.
 function useRevealMoment(id, complete) {
@@ -26,29 +29,19 @@ function useRevealMoment(id, complete) {
   return celebrating;
 }
 
-function InkRoute() {
-  return (
-    <svg
-      className="result-route"
-      viewBox="0 0 320 56"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path className="route-base" d="M-10 40h46l25-24h65l28 25h63l30-25h88" />
-      <path
-        className="route-ink"
-        pathLength="1"
-        d="M-10 40h46l25-24h65l28 25h63l30-25h88"
-      />
-      <circle cx="61" cy="16" r="4" />
-      <circle cx="217" cy="41" r="4" />
-    </svg>
-  );
-}
-
 export function DistanceValue({ meters }) {
   const [value, unit] = formatDistance(meters).split(" ");
-  return <><span className="distance-number">{value}</span>{unit && <> <small className="distance-unit">{unit}</small></>}</>;
+  return (
+    <>
+      <span className="distance-number">{value}</span>
+      {unit && (
+        <>
+          {" "}
+          <small className="distance-unit">{unit}</small>
+        </>
+      )}
+    </>
+  );
 }
 
 export function WinnerSpotlight({ board = [], roomCode }) {
@@ -57,18 +50,29 @@ export function WinnerSpotlight({ board = [], roomCode }) {
   if (!winner) return null;
   return (
     <div className={`winner-spotlight${celebrating ? " is-celebrating" : ""}`}>
-      <div className="winner-emblem" aria-hidden="true"><Icon name="trophy" size={40} /><b>{winner.rank}</b></div>
+      <div className="winner-emblem" aria-hidden="true">
+        <Icon name="trophy" size={40} />
+        <b>{winner.rank}</b>
+      </div>
       <div className="winner-identity">
-        <span className="winner-label">{board.length > 1 ? "本局头名 · 方向感领跑" : "单人挑战 · 顺利完赛"}</span>
+        <span className="winner-label">
+          {board.length > 1 ? "本局头名 · 方向感领跑" : "单人挑战 · 顺利完赛"}
+        </span>
         <h2>{winner.name}</h2>
       </div>
-      <div className="winner-distance"><span>三题总误差</span><strong><DistanceValue meters={winner.totalError} /></strong></div>
+      <div className="winner-distance">
+        <span>三题总误差</span>
+        <strong>
+          <DistanceValue meters={winner.totalError} />
+        </strong>
+      </div>
     </div>
   );
 }
 
 export function PersonalResults({
   you,
+  playerName,
   final = true,
   row,
   board = [],
@@ -80,93 +84,124 @@ export function PersonalResults({
   const complete = !!(you.submitted && Number.isFinite(you.totalError));
   const spectator = !(you.targets || []).length;
   const celebrating = useRevealMoment(`${roomCode}:${you.id}`, complete);
-  const scored = results.filter((r) => Number.isFinite(r.distance_m));
-  const best = scored.reduce(
-    (pick, r) => (!pick || r.distance_m < pick.distance_m ? r : pick),
-    null,
-  );
-  const previous = row && board.find((p) => p.rank === row.rank - 1);
-  const gap = previous ? row.totalError - previous.totalError : null;
-  const headline = !complete
-    ? spectator
-      ? "下一局，换你找北京"
-      : "留点悬念，下次见分晓"
-    : final && board.length > 1 && row?.rank === 1
-      ? "这一局，你领跑北京"
-      : best?.distance_m <= 300
-        ? "这一针，真的很准"
-        : "挑战完成！北京，又熟悉了一点";
+  const best = bestResult(you);
+  const bestOverlays = best
+    ? playerMapOverlays(
+        {
+          ...you,
+          targets: you.targets.filter((t) => t.id === best.id),
+          results: [best],
+        },
+        "reveal",
+      )
+    : null;
   const nextChallenge = !complete
     ? spectator
-      ? "看过朋友们的落点，下一局也来挑战。"
-      : "下一局记得提交，让你的方向感上榜。"
+      ? "本局旁观，下一局再一起挑战。"
+      : "本局未提交完整答案，未计入排名。"
     : !final
-      ? "已提交，最终排名待公布。先看看你的三个落点。"
-      : board.length === 1
-      ? "记住这三个点，下次让误差更小。"
-      : row?.rank === 1
-        ? "这次领跑，下局能守住吗？"
-        : gap > 0
-          ? `距上一名相差 ${formatDistance(gap)}，再近一点就能超越。`
-          : "同分也很精彩，下局再比一次方向感。";
+      ? "已提交，最终排名待公布。"
+      : null;
   return (
     <section
       className={`personal-results${celebrating ? " is-celebrating" : ""}`}
       aria-label="个人成绩单"
     >
-      <div
-        className={`result-summary score-ticket${complete ? " is-complete" : " is-incomplete"}`}
-      >
-        <div className="score-ticket-top"><span><Icon name="flag" size={14} />{complete ? "北京记忆 · 本局战绩" : "北京记忆 · 本局回看"}</span><span>{roomCode}</span></div>
-        <InkRoute />
-        {complete && (
-          <span className="result-sparks" aria-hidden="true">
-            {Array.from({ length: 8 }, (_, i) => (
-              <i key={i} style={{ "--spark": i }} />
-            ))}
-          </span>
-        )}
-        <h2 className="result-headline">{headline}</h2>
-        <div className="result-score-row">
-          <div className="result-score">
-            <span>
-              {complete ? "你的总误差" : spectator ? "本局旁观" : "本局未提交"}
+      <div className="result-hero">
+        <div
+          className={`result-summary score-ticket${complete ? " is-complete" : " is-incomplete"}`}
+        >
+          {complete && (
+            <span className="result-sparks" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, i) => (
+                <i key={i} style={{ "--spark": i }} />
+              ))}
             </span>
-            <strong>
-              {complete ? <DistanceValue meters={you.totalError} /> : "未计入排名"}
-            </strong>
-          </div>
-          {complete && final && row && (
-            <div className="result-seal">
-              <span>{board.length > 1 ? "本局排名" : "单人挑战"}</span>
-              <span className="result-rank">
-                第 <b>{row.rank}</b> 名
-              </span>
-              <span>
-                {board.length > 1 && row.rank === 1 ? "本局头名" : "挑战完成"}
-              </span>
-            </div>
           )}
+          <div className="result-identity">
+            <h2 className="result-headline">
+              {complete ? "本局成绩" : "本局回看"}
+            </h2>
+            <span>{playerName}</span>
+          </div>
+          <div className="result-score-row">
+            <div className="result-score">
+              <span>
+                {complete
+                  ? "三题总误差"
+                  : spectator
+                    ? "本局旁观"
+                    : "本局未提交"}
+              </span>
+              <strong>
+                {complete ? (
+                  <DistanceValue meters={you.totalError} />
+                ) : (
+                  "未计入排名"
+                )}
+              </strong>
+            </div>
+            {complete && final && row && (
+              <div className="result-seal">
+                <span>{board.length > 1 ? "本局排名" : "单人挑战"}</span>
+                <span className="result-rank">
+                  第 <b>{row.rank}</b> 名
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         {complete && best && (
-          <button
-            className="result-best"
-            onClick={() => onSelect(best.id)}
-            aria-label={`回看最准的一针：${best.name}`}
-          >
-            <Icon name="pin" size={17} />
-            <span>
-              最准一针<strong>{best.name}</strong>
-            </span>
-            <b>{formatDistance(best.distance_m)}</b>
-            <Icon name="arrow" size={15} />
-          </button>
+          <figure className="best-map-card" data-target-id={best.id}>
+            <figcaption>
+              <div>
+                <span className="best-label">
+                  <Icon name="pin" size={13} />
+                  最准一题
+                </span>
+                <strong>{best.name}</strong>
+              </div>
+              <b>{formatDistance(best.distance_m)}</b>
+            </figcaption>
+            <div
+              className="result-map-preview"
+              onClick={(event) => {
+                if (!event.target.closest("button,a")) onSelect(best.id);
+              }}
+            >
+              <MapView
+                variant="thumbnail"
+                pins={bestOverlays.pins}
+                lines={bestOverlays.lines}
+                fitKey={`best-${roomCode}-${best.id}`}
+                fitPadding={[12, 12, 16, 12]}
+              />
+            </div>
+            <div className="thumbnail-legend">
+              <span>
+                <i className="legend-dot guess" />
+                你的猜测
+              </span>
+              <span>
+                <i className="legend-dot truth" />
+                真实位置
+              </span>
+              <button
+                className="thumbnail-open"
+                onClick={() => onSelect(best.id)}
+                aria-label={`展开最准一题地图：${best.name}`}
+              >
+                <Icon name="screen" size={15} />
+                展开地图
+              </button>
+            </div>
+          </figure>
         )}
       </div>
-      <p className="result-challenge">{nextChallenge}</p>
+      {nextChallenge && <p className="result-challenge">{nextChallenge}</p>}
       {results.length > 0 && (
         <div className="result-detail-heading">
-          <h3>把这三个地方，再记牢一点</h3>
+          <h3>三个地点，逐一回看</h3>
           <span>点选回看</span>
         </div>
       )}
@@ -190,10 +225,8 @@ export function PersonalResults({
                   {r.distance_m == null
                     ? "未计分 · 看看真实位置"
                     : r.id === best?.id
-                      ? "本局最准的一针"
-                      : r.distance_m < 500
-                        ? "方向感不错"
-                        : "下次，离这里再近一点"}
+                      ? "最准一题"
+                      : "查看猜测与真实位置"}
                 </small>
               </span>
               <strong>{formatDistance(r.distance_m)}</strong>
@@ -202,14 +235,6 @@ export function PersonalResults({
           </li>
         ))}
       </ul>
-      <p className="map-legend">
-        <span className="legend-dot guess" />
-        你的猜测
-        <span className="legend-dot truth" />
-        真实位置
-        <span className="legend-line" />
-        距离误差
-      </p>
     </section>
   );
 }
