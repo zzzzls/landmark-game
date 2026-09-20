@@ -13,7 +13,7 @@
   gap: 6%;
   padding: 54px 0 38px;
 }
-.arcade-home .session-hero { padding-bottom: 234px; }
+.arcade-home .session-hero { padding-bottom: 0; }
 .hero-sign {
   display: inline-flex;
   gap: 10px;
@@ -51,7 +51,7 @@
   box-shadow: 6px 6px 0 var(--ink);
 }
 .arcade-home .home-intro { font-size: 15px; margin-top: 26px; color: var(--ink); }
-.hero-city { position: absolute; left: -30px; right: -56px; bottom: 0; }
+.hero-city { position: relative; margin: 12px -56px 0 -30px; }
 .pixel-city { display: block; width: 100%; height: auto; image-rendering: pixelated; }
 .city-caption { display: block; margin: 12px 0 0 30px; font-size: 11px; color: var(--muted); letter-spacing: .12em; }
 .home-bottom { display: flex; justify-content: space-between; gap: 20px; max-width: 1160px; margin: auto; font-size: 12px; color: var(--muted); }
@@ -296,8 +296,7 @@
 
 @media (min-width: 861px) and (max-width: 1400px) {
   .arcade-home .home-layout { gap: 5%; }
-  .arcade-home .session-hero { padding-bottom: 200px; }
-  .hero-city { left: -16px; right: -24px; }
+  .hero-city { margin-left: -16px; margin-right: -24px; }
   .screen-rail { padding: 22px; }
   .screen-rail .invite-pass { padding: 14px; gap: 16px; }
   .screen-rail .invite-qr { width: 128px; height: 128px; }
@@ -316,14 +315,14 @@
   .arcade-home { padding-left: 20px; padding-right: 20px; }
   .arcade-home .home-nav { height: 64px; }
   .arcade-home .home-layout { display: flex; min-height: 0; gap: 22px; padding: 22px 0 24px; }
-  .arcade-home .session-hero { padding-bottom: 125px; }
   .hero-sign { margin-bottom: 18px; font-size: 10px; padding: 5px 9px; gap: 6px; box-shadow: 3px 3px 0 var(--accent); }
   .hero-sign svg { width: 13px; height: 13px; }
   .arcade-home .session-hero h1 { font-size: clamp(39px, 10.8vw, 48px); line-height: 1.08; }
   .arcade-home .session-hero h1 small { font-size: 16px; margin-bottom: 9px; }
   .arcade-home .session-hero h1 > span { margin-top: 7px; padding: 0 8px 6px; box-shadow: 4px 4px 0 var(--ink); }
   .arcade-home .home-intro { margin-top: 16px; font-size: 12px; }
-  .hero-city { left: 0; right: 0; bottom: 0; }
+  .hero-city { margin: 12px 0 0; }
+  .hero-city .pixel-city { max-height: 115px; }
   .city-caption { display: none; }
   .session-entry.admission-ticket { padding: 0 20px; box-shadow: 5px 5px 0 var(--ink); }
   .ticket-topline { margin: 0 -20px; padding: 8px 14px; font-size: 10px; }
@@ -385,6 +384,13 @@
   .screen-result-places > div > strong { font-size: 11px; }
   .screen-result-places .screen-place-name b { padding: 0 2px; }
   .screen-pagination { font-size: 11px; gap: 6px; }
+}
+@media (min-width: 861px) and (max-height: 800px) {
+  .arcade-home .home-layout { padding: 32px 0 24px; }
+  .arcade-home .session-hero h1 { font-size: clamp(48px, 5vw, 64px); }
+  .arcade-home .hero-sign { margin-bottom: 18px; }
+  .arcade-home .home-intro { margin-top: 20px; }
+  .hero-city .pixel-city { max-height: 180px; }
 }
 @media (max-width: 860px) and (max-height: 650px) {
   .arcade-home .home-layout { padding-top: 18px; gap: 18px; }

@@ -770,10 +770,15 @@ test("fixed nickname entry, guide and pixel layouts at phone and desktop sizes",
     await phone.page.getByRole("button", { name: "开始探索", exact: true }).click();
     await phone.page.getByLabel("你的昵称").fill("入口测试");
     await phone.page.emulateMedia({ reducedMotion: "reduce" });
-    for (const width of [360, 390, 430, 1440, 1920]) {
-      await phone.page.setViewportSize({ width, height: width < 500 ? 844 : 1080 });
+    for (const [width, height] of [[360, 844], [390, 844], [430, 844], [1280, 720], [1440, 1080], [1920, 1080]]) {
+      await phone.page.setViewportSize({ width, height });
       await noHorizontalOverflow(phone.page);
       await expect(phone.page.getByRole("button", { name: "加入游戏", exact: true })).toBeInViewport();
+      const scenery = await phone.page.locator(".session-hero").evaluate(el => ({
+        textBottom: el.querySelector(".home-intro").getBoundingClientRect().bottom,
+        cityTop: el.querySelector(".hero-city").getBoundingClientRect().top,
+      }));
+      expect(scenery.cityTop).toBeGreaterThanOrEqual(scenery.textBottom);
       await capture(phone.page, `home-${width}`);
     }
     await phone.page.setViewportSize({ width: 390, height: 500 });
