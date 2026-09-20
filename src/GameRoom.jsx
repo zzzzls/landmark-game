@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import MapView from "./MapView.jsx";
+import { WinnerSpotlight } from "./Results.jsx";
 import { useRoom, navigate, phaseLabel } from "./ws.js";
 import {
   contributePins,
@@ -59,6 +60,8 @@ export default function GameRoom({ code, name, role }) {
   const [mapStatus, setMapStatus] = useState("loading");
   const [guide, setGuide] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  const [restarting, setRestarting] = useState(false);
+  const restartRef = useRef(false);
   const [lanUrl, setLanUrl] = useState("");
   const { toast, showToast } = useToast();
   const topRef = useRef(null);
@@ -194,6 +197,37 @@ export default function GameRoom({ code, name, role }) {
         messageType: "reveal",
       });
     else act({ type: "reveal" });
+  }
+  async function playAgain() {
+    if (restartRef.current) return;
+    restartRef.current = true;
+    setRestarting(true);
+    try {
+      const response = await fetch("/api/rooms", {
+        method: "POST",
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error("新房间创建失败，请再试一次。");
+      const next = await response.json();
+      if (!next.code) throw new Error("未能获取新房间号，请重试。");
+      try {
+        sessionStorage.setItem("lg-name", name);
+      } catch {
+        /* The URL also carries the nickname. */
+      }
+      navigate(`/r/${next.code}/admin?name=${encodeURIComponent(name)}`);
+    } catch (error) {
+      showToast(
+        error.name === "TimeoutError"
+          ? "创建超时，请检查网络后重试。"
+          : error.message === "Failed to fetch"
+            ? "连接失败，请检查网络后重试。"
+            : error.message,
+      );
+    } finally {
+      restartRef.current = false;
+      setRestarting(false);
+    }
   }
   async function copy(value, label) {
     try {
@@ -414,6 +448,9 @@ export default function GameRoom({ code, name, role }) {
                   </p>
                 </div>
               )}
+              {phase === "reveal" && (
+                <WinnerSpotlight board={state.leaderboard} />
+              )}
               <div className="section-heading">
                 <h2>
                   {phase === "lobby"
@@ -489,6 +526,8 @@ export default function GameRoom({ code, name, role }) {
                   <PersonalResults
                     you={you}
                     row={ownResult}
+                    board={state.leaderboard}
+                    roomCode={code}
                     selectedId={selectedId}
                     onSelect={(id) => {
                       setSelectedId(id);
@@ -511,7 +550,30 @@ export default function GameRoom({ code, name, role }) {
           )}
         </div>
         <footer className="task-footer">
-          {managing ? (
+          {phase === "reveal" ? (
+            <>
+              <div className="result-actions">
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    setSelectedId(null);
+                    setExpanded(!expanded);
+                  }}
+                >
+                  {expanded ? "收起，看地图" : "查看成绩与排名"}
+                </button>
+                <button
+                  className="primary play-again"
+                  disabled={restarting}
+                  onClick={playAgain}
+                >
+                  <Icon name="undo" size={18} />
+                  {restarting ? "正在创建…" : "再开一局"}
+                </button>
+              </div>
+              <p className="replay-note">新建房间，保留昵称 · 邀朋友再比一场</p>
+            </>
+          ) : managing ? (
             phase === "lobby" ? (
               <button
                 className="primary"
@@ -523,7 +585,7 @@ export default function GameRoom({ code, name, role }) {
                   : "等待至少一人准备好"}
                 <Icon name="arrow" />
               </button>
-            ) : phase === "playing" ? (
+            ) : (
               <>
                 <p className="muted small">
                   全员提交后自动揭晓，也可以提前结束。
@@ -536,11 +598,6 @@ export default function GameRoom({ code, name, role }) {
                   提前揭晓
                 </button>
               </>
-            ) : (
-              <a className="primary" href="/">
-                返回首页，再开一局
-                <Icon name="arrow" />
-              </a>
             )
           ) : (
             <>
@@ -633,18 +690,6 @@ export default function GameRoom({ code, name, role }) {
                 <button className="secondary" onClick={() => setExpanded(true)}>
                   查看大家的进度
                   <Icon name="users" size={18} />
-                </button>
-              )}
-              {phase === "reveal" && (
-                <button
-                  className="secondary"
-                  onClick={() => {
-                    setSelectedId(null);
-                    setExpanded(!expanded);
-                  }}
-                >
-                  {expanded ? "收起，看地图" : "查看成绩与排名"}
-                  <Icon name="trophy" size={18} />
                 </button>
               )}
             </>

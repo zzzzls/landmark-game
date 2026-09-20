@@ -76,11 +76,15 @@ components:
     backgroundColor: "{colors.surface}"
     rounded: "22px"
     padding: "32px"
+  result-summary:
+    backgroundColor: "{colors.accent-soft}"
+    rounded: "14px"
+    padding: "18px 16px 0"
 ---
 
 # Design System: 北京地标盲猜
 
-<!-- IMPLEMENTATION SNAPSHOT: extracted from src/styles.css, src/UI.jsx, src/Home.jsx, src/GameRoom.jsx and src/Screen.jsx. This document describes the implemented system; it is not runtime acceptance evidence. -->
+<!-- IMPLEMENTATION SNAPSHOT: extracted from src/styles.css, src/UI.jsx, src/Home.jsx, src/GameRoom.jsx, src/Screen.jsx and src/Results.jsx. This document describes the implemented system; it is not runtime acceptance evidence. -->
 
 ## Overview
 
@@ -129,7 +133,7 @@ components:
 
 页面主要靠表面色、边框和留白分层。`--shadow` 用于桌面任务面板、现场信息栏、对话框与 toast；手机底板使用向上的浅阴影。房主选中标签和地图说明使用更轻的局部阴影。准确阴影值记录在 sidecar，避免在正文重复 token。
 
-动效仅反馈状态：按钮按压下移、地图预览针落下、成绩摘要出现、面板内容展开与提交进度变化。尊重 `prefers-reduced-motion`，启用时取消动画和过渡。
+动效用于状态反馈与单次结算庆祝。完成并计入排名的个人成绩单使用路线描画（800ms）、名次落印（600ms，延迟 120ms）、数字遮罩揭示（650ms），以及限制在票据内的 8 粒朱红/金色纸屑（650ms，延迟 400ms）；庆祝状态在 1400ms 后结束。成绩文本从首帧就是服务端真实值，不做从零累加。正常可用的 sessionStorage 按房间号与玩家 ID 记录已播放状态，同标签页刷新或切换房主视图不重复庆祝。未提交者不庆祝；尊重 `prefers-reduced-motion`，启用时直接展示静态结果并取消动画和过渡。原按钮按压、预览针落下、面板展开与提交进度动效保持。
 
 ## Shapes
 
@@ -141,6 +145,7 @@ components:
 - **Inputs：** 暖白表面、细边框、持续可见的标签；聚焦时朱红边框与浅色焦点环。错误在字段附近以独立可读文案呈现，搜索分别显示加载、无结果与失败。
 - **Navigation：** 首页入口用下划线表示选中；房主“房间管理 / 我的答题”用浅底分段导航。题目切换用数字和确认勾结合选中色，选中状态由 `aria-pressed` 表达。
 - **Panels：** 入口容器使用边框与留白；地图上任务面板有标题、可滚动正文及固定操作区。手机收起的是详情，当前题与主操作继续可见。
+- **Results：** 个人成绩采用浅朱红票据、路线线稿与略微倾斜的双线名次印章；总误差、真实排名与“最准一针”形成层级。最准地点和逐题明细均可点选回看；上一名差距由实际总误差相减，单人及未提交状态分别使用对应文案。排行榜突出本人，房主管理与大屏在榜单上方突出本局头名；单人显示“挑战完成”。揭晓页脚并列保留成绩/地图切换与“再开一局”，后者新建房间、保留昵称并进入新房主管理，不代表原房多轮或自动迁移其他玩家。
 - **Map markers：** 实心猜测点、绿色空心真实点、预览标签与误差连线承担游戏信息；高德底图隐藏地名，保留地图版权。这里只描述界面，不改变揭晓前后的数据隔离。
 - **Dialogs and feedback：** 指引与提前揭晓确认使用原生 `dialog`；错误使用 alert，连接反馈与 toast 使用 status。成功反馈在服务端确认后出现，断线时操作禁用。
 
@@ -158,4 +163,5 @@ components:
 - Don't 用颜色作为选中、完成或失败的唯一信息。
 - Don't 将主操作藏进折叠菜单，或让长内容挤掉操作区。
 - Don't 在服务端确认前显示操作成功，或把缺失成绩显示为零。
+- Don't 用虚构累加成绩或重复庆祝遮挡结果；不要把新建房间描述为原房续局。
 - Don't 将本文、截图或组件预览当成真实地图及完整游戏流程验收。

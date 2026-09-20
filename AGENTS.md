@@ -6,7 +6,7 @@
 
 - `src/App.jsx`：首页、玩家 `/r/CODE`、管理员 `/r/CODE/admin`、大屏 `/r/CODE/screen` 路由。
 - `src/GameRoom.jsx`：玩家与管理员共享流程；管理员复用同一连接切换房间管理/我的答题。
-- `src/Panels.jsx`、`src/UI.jsx`：出题、结果、名单、公共控件和指引。
+- `src/Panels.jsx`、`src/UI.jsx`：出题、名单、公共控件和指引；`src/Results.jsx`：成绩单、排名落印与最佳玩家展示。
 - `src/MapView.jsx`、`src/mapOverlays.js`、`src/loadAmap.js`：地图生命周期、答案叠加层、SDK 加载。
 - `src/ws.js`：连接状态与操作确认；服务端 state 才是成功依据。
 - `backend/main.py`：有效 API/WS 入口；`backend/rooms.py`：房间状态、抽题、计分；`backend/landmarks.py`：系统题库与搜索兜底。
@@ -34,6 +34,8 @@
 - 中文、手机优先；米白底、深色文字、朱红主色，具体 token 见 `src/styles.css` / `DESIGN.md`。
 - 手机使用底部任务面板，桌面使用侧栏；当前题与主操作不藏进菜单。地图避让按实际面板尺寸计算。UI 的 padding 使用 CSS 顺序，高德 setFitView 的 avoid 必须转换为上、下、左、右，并留足标签宽度与高度。窗口变化时需等待 SDK 尺寸同步后重新取景；程序化地图跳转使用立即模式，避免旧动画跨阶段覆盖揭晓取景。禁用双击缩放，防止连续落针被解释为缩放；保留双指和滚轮缩放。
 - 安全区、短屏、软键盘、长名称、滚动和触控区域需要验证；尊重 `prefers-reduced-motion`。
+- 结算成绩从首帧使用服务端真实值；落印/路线/散点仅首次展示时短暂播放，不循环，不阻塞操作，同房刷新或切页签不重播。未提交或旁观者不播放成绩庆祝。
+- “再开一局”复用 POST `/api/rooms` 创建新房，保留昵称并进入管理员大厅；原房不重置，朋友需加入新房。不将其描述为房间内多轮或自动迁移玩家。请求中禁止重复创建，失败保留原成绩并允许重试。
 - 搜索要取消旧请求，区分加载/无结果/失败。断线时禁用操作；不排队重放命令、不抢先显示成功。
 - `useRoom().send(message)` 返回 Promise；调用必须 await/catch。同一连接最多一个待确认操作，超时重新同步。
 - 地图仅在真实 complete 后进入 ready；重试要清理失败脚本/实例。保留高德版权标识和无文字底图。

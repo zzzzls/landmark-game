@@ -460,13 +460,37 @@ test("two phone players complete a real-map game; host and screen stay synchroni
   }
 });
 
-test("solo host contributes, answers three system questions and completes the game", async ({
+test("solo host gets truthful animated results and can safely create another room", async ({
   browser,
 }) => {
   const host = await mobile(browser, 360);
   const state = observeRoom(host.page);
+  const distanceText = (meters) =>
+    meters < 1000
+      ? `${Math.round(meters)} 米`
+      : `${(meters / 1000).toFixed(2)} 公里`;
+  const observeSettlement = () => {
+    const evidence = { first: null, celebrationStarts: 0 };
+    window.__settlementEvidence = evidence;
+    let celebrating = false;
+    new MutationObserver(() => {
+      const panel = document.querySelector(".personal-results");
+      if (panel && !evidence.first) {
+        evidence.first = {
+          summary: panel.querySelector(".result-summary")?.textContent,
+          rank: panel.querySelector(".result-rank b")?.textContent,
+          best: panel.querySelector(".result-best")?.textContent,
+        };
+      }
+      const active = !!panel?.classList.contains("is-celebrating");
+      if (active && !celebrating) evidence.celebrationStarts += 1;
+      celebrating = active;
+    }).observe(document, { childList: true, subtree: true, attributes: true });
+  };
+  let releaseCreate;
   try {
-    await createRoom(host.page, "单人房主");
+    const originalCode = await createRoom(host.page, "单人房主");
+    const originalUrl = host.page.url();
     await host.page
       .getByRole("button", { name: "我的答题", exact: true })
       .click();
@@ -493,6 +517,10 @@ test("solo host contributes, answers three system questions and completes the ga
     await noHorizontalOverflow(host.page);
     await capture(host.page, "solo-guessing-360");
     await answerAll(host.page);
+    // Observe the first rendered values before clicking submit. Waiting for the
+    // toast or screenshot would miss the short celebration and hide count-up bugs.
+    await host.page.evaluate(observeSettlement);
+    await host.page.addInitScript(observeSettlement);
     await host.page
       .getByRole("button", { name: "提交全部答案", exact: true })
       .click();
@@ -500,13 +528,186 @@ test("solo host contributes, answers three system questions and completes the ga
       "data-phase",
       "reveal",
     );
-    await expect(host.page.locator(".result-summary")).toContainText(
-      "你的总误差",
+    const completed = structuredClone(state.current);
+    const own = completed.players.find(
+      (player) => player.id === completed.you.id,
+    );
+    const rank = completed.leaderboard.find(
+      (row) => row.color === own.color,
+    ).rank;
+    const best = completed.you.results.reduce((nearest, result) =>
+      result.distance_m < nearest.distance_m ? result : nearest,
+    );
+    const total = distanceText(own.totalError);
+    await expect
+      .poll(() =>
+        host.page.evaluate(() => window.__settlementEvidence.celebrationStarts),
+      )
+      .toBe(1);
+    const firstPaint = await host.page.evaluate(
+      () => window.__settlementEvidence.first,
+    );
+    expect(firstPaint.summary).toContain(total);
+    expect(firstPaint.rank).toBe(String(rank));
+    expect(firstPaint.best).toContain(best.name);
+    expect(firstPaint.best).toContain(distanceText(best.distance_m));
+    await expect(host.page.locator(".result-summary")).toContainText(total);
+    await expect(host.page.locator(".result-rank b")).toHaveText(String(rank));
+    await expect(host.page.locator(".result-best")).toContainText(best.name);
+    await expect(host.page.locator(".result-best")).toContainText(
+      distanceText(best.distance_m),
     );
     await expect(host.page.locator(".leaderboard > li")).toHaveCount(1);
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
     await pinsInsideVisibleMap(host.page, ".task-panel");
     await capture(host.page, "solo-results-360");
+    await host.page
+      .getByRole("button", { name: "房间管理", exact: true })
+      .click();
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
+    expect(
+      await host.page.evaluate(
+        () => window.__settlementEvidence.celebrationStarts,
+      ),
+    ).toBe(1);
+    await host.page.reload();
+    await mapReady(host.page);
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await expect(host.page.locator(".result-summary")).toContainText(total);
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
+    expect(
+      await host.page.evaluate(
+        () => window.__settlementEvidence.celebrationStarts,
+      ),
+    ).toBe(0);
+
+    await host.page.emulateMedia({ reducedMotion: "reduce" });
+    const motion = await host.page
+      .locator(".personal-results")
+      .evaluate((panel) => {
+        const all = [panel, ...panel.querySelectorAll("*")];
+        return all.flatMap((element) =>
+          [null, "::before", "::after"].map((pseudo) => {
+            const style = getComputedStyle(element, pseudo);
+            return {
+              animation: style.animationDuration,
+              transition: style.transitionDuration,
+            };
+          }),
+        );
+      });
+    for (const style of motion) {
+      // 0.01 ms is the accessible near-zero duration used by the global override.
+      expect(
+        style.animation
+          .split(",")
+          .every((value) => parseFloat(value) <= 0.00001),
+      ).toBe(true);
+      expect(
+        style.transition
+          .split(",")
+          .every((value) => parseFloat(value) <= 0.00001),
+      ).toBe(true);
+    }
+    await noHorizontalOverflow(host.page);
+    await capture(host.page, "solo-results-reduced-motion-360");
+
+    let createRequests = 0;
+    let failCreate = true;
+    const blockedCreate = new Promise((resolve) => {
+      releaseCreate = resolve;
+    });
+    await host.page.route("**/api/rooms", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      createRequests += 1;
+      if (failCreate) {
+        return route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: '{"detail":"test unavailable"}',
+        });
+      }
+      await blockedCreate;
+      return route.continue(); // Successful room creation is always the real backend.
+    });
+    const again = host.page
+      .locator(".task-footer")
+      .getByRole("button", { name: "再开一局", exact: true });
+    await again.click();
+    await expect(host.page.locator(".toast")).toContainText(
+      "新房间创建失败，请再试一次。",
+    );
+    await expect(again).toBeEnabled();
+    await expect(host.page).toHaveURL(originalUrl);
+    await expect(host.page.locator(".result-summary")).toContainText(total);
+    expect(createRequests).toBe(1);
+    failCreate = false;
+    const buttonBox = await again.boundingBox();
+    await again.click();
+    await expect.poll(() => createRequests).toBe(2);
+    // Repeated physical taps while the first POST is in flight must not create
+    // extra rooms. The coordinate remains usable when the busy label changes.
+    await host.page.touchscreen.tap(
+      buttonBox.x + buttonBox.width / 2,
+      buttonBox.y + buttonBox.height / 2,
+    );
+    await host.page.touchscreen.tap(
+      buttonBox.x + buttonBox.width / 2,
+      buttonBox.y + buttonBox.height / 2,
+    );
+    expect(createRequests).toBe(2);
+    releaseCreate();
+    await expect(host.page).not.toHaveURL(originalUrl);
+    await expect(host.page).toHaveURL(/\/r\/[A-Z0-9]{4}\/admin\?name=/);
+    const newUrl = new URL(host.page.url());
+    expect(newUrl.pathname.split("/")[2]).not.toBe(originalCode);
+    expect(newUrl.searchParams.get("name")).toBe("单人房主");
+    await expect(host.page.locator(".game-room")).toHaveAttribute(
+      "data-phase",
+      "lobby",
+    );
+    await mapReady(host.page);
+    await expect
+      .poll(() => state.current?.room)
+      .toBe(newUrl.pathname.split("/")[2]);
+    expect(state.current.players).toHaveLength(1);
+    expect(state.current.players[0].contributed).toBe(0);
+    expect(state.current.you.targets || []).toEqual([]);
+    expect(createRequests).toBe(2);
+    await capture(host.page, "play-again-new-room-360");
+    await host.page.goto(originalUrl);
+    await mapReady(host.page);
+    await expect(host.page.locator(".game-room")).toHaveAttribute(
+      "data-phase",
+      "reveal",
+    );
+    await host.page
+      .getByRole("button", { name: "我的答题", exact: true })
+      .click();
+    await expect(host.page.locator(".result-summary")).toContainText(total);
+    await expect(host.page.locator(".result-rank b")).toHaveText(String(rank));
+    expect(state.current.you.results).toEqual(completed.you.results);
+    await expect(host.page.locator(".personal-results")).not.toHaveClass(
+      /is-celebrating/,
+    );
+    expect(
+      await host.page.evaluate(
+        () => window.__settlementEvidence.celebrationStarts,
+      ),
+    ).toBe(0);
   } finally {
+    releaseCreate?.();
     await host.context.close();
   }
 });

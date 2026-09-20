@@ -3,6 +3,7 @@ import { useRoom, phaseLabel } from "./ws.js";
 import MapView from "./MapView.jsx";
 import { screenMapOverlays } from "./mapOverlays.js";
 import { Leaderboard, Roster } from "./Panels.jsx";
+import { WinnerSpotlight } from "./Results.jsx";
 import { Brand, Icon } from "./UI.jsx";
 export default function Screen({ code }) {
   const { state, error, status } = useRoom(code, "screen", "");
@@ -137,6 +138,7 @@ export default function Screen({ code }) {
         )}
         {phase === "reveal" && (
           <>
+            <WinnerSpotlight board={state.leaderboard} />
             <Leaderboard board={state.leaderboard} />
             {ready.some((p) => !p.submitted) && (
               <div className="unsubmitted">
