@@ -56,6 +56,34 @@ uv run python tests/load_session.py --url ws://127.0.0.1:18003 --players 30
 
 `test:recovery` 会检查独立端口是否空闲，只停止自己创建的子进程；若端口已被占用，退出并报错，不终止未知服务。
 
+## 资源本地化检查
+
+资源检查会通过 UI 创建测试房间，必须使用独立、初始无当前房间的后端。以下端口仅是示例，先确认未被占用；保留本项目 `.env`，不要打印凭据。
+
+```sh
+npm run build
+# 终端一：独立后端；检查结束后停止本次进程
+FRONTEND_PORT=5188 uv run uvicorn backend.main:app --host 127.0.0.1 --port 18088 --no-access-log
+# 终端二：Vite preview 沿用 server.proxy，指向上述后端
+BACKEND_PORT=18088 npm run preview -- --host 127.0.0.1 --port 5188 --strictPort
+# 终端三
+PLAYTEST_BASE_URL=http://127.0.0.1:5188 npm run test:resources
+```
+
+三个独立 Chrome context 禁用缓存，覆盖玩家、管理员和大屏的等待页及建房后大厅，检查本地数字字体、真实地图 complete、四个参照点和成功瓦片响应。允许同源 HTTP/WebSocket，以及高德必要的 `amap.com` / `autonavi.com` 子域；其余外部请求导致失败。报告只保存域名、类型、数量和检查状态至 `artifacts/resource-audit.json`，不记录完整 URL、查询串、密钥或响应体，不生成 trace/HAR。
+
+同时扫描 `src/`、`index.html` 和 `dist/` 中的脚本、样式、图片、字体及嵌套引用。代码内 SVG/XML 命名空间、文档链接不等于资源请求；远程懒加载资源则不能因冷启动未触发而漏审。此检查只验证上述场景的资源边界，不是整局、30 人或离线地图验收。
+
+### 2026-09-20 设计技能与资源检查记录
+
+- 项目安装 5 个固定版本上游技能，并新增 `landmark-ui-design`。6 个技能全部通过 frontmatter 校验，本地引用完整，安装版本和本地 SKILL 哈希匹配锁记录。
+- 对“优化手机答题面板”“改进结算反馈”进行了指引桌面推演：分别选择 redesign/组件交互参考、Transitions，保留像素主题、地图避让和主操作；结算不得采用上游的数字滚动/延迟显现建议，仍使用首帧真实成绩。此项是指引审阅，不是页面改版或独立 Agent 实现验证。
+- `npm run build` 通过；源码与生产包中的 UI 静态资源已在本地，外部运行依赖只发现高德 SDK 和瓦片。React 错误文档链接及 SVG/XML 命名空间不产生资源请求，没有待下载的外部 UI 素材。
+- 在独立后端 `18188`、生产预览 `5198` 上通过 `npm run test:resources`：三种角色使用禁用缓存的新 context，字体加载成功，真实地图 ready、四个参照点正常；玩家/管理员各收到 12 个成功瓦片响应，大屏收到 54 个。非高德外部请求、本地资源错误和浏览器异常均为 0。
+- 实际外部域名为 `webapi.amap.com`、`restapi.amap.com`、`jsapi.amap.com`、`jsapi-service.amap.com`、`custyle.amap.com` 及 `webrd01` 至 `webrd04.is.autonavi.com`，属于高德地图加载链路；浏览器未直连其他资源来源。
+
+证据为忽略目录中的 `artifacts/resource-audit.json`、`artifacts/skill-validation.json`、`artifacts/skill-scenarios.md`。本次未修改页面视觉、游戏逻辑或依赖版本；Tailwind 已允许按需引入，尚未安装。未重跑整局和 30 人测试，既有记录的验证边界不扩大。
+
 ## 2026-09-20 最终改版记录
 
 验收版本：固定默认房间、亮色像素主题、四个公共地标emoji参照、个人即时成绩及管理员联动重开。

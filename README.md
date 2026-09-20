@@ -67,3 +67,11 @@ uv run python tests/load_session.py --url ws://127.0.0.1:18003 --players 30
 ```
 
 测试与限制见 `PLAYTEST.md`。有效入口是 `src/` 和 `backend/`；`server/` 为历史实现。
+
+## 项目设计技能与静态资源
+
+前端设计从 [.agents/skills/landmark-ui-design/SKILL.md](.agents/skills/landmark-ui-design/SKILL.md) 开始，按任务选择已安装的 BeUI、Transitions、shadcn 与 taste-skill，并参考 Beautiful UI、Rare UI 的项目适配指南。技能随仓库提交；版本、许可与本地适配见技能中的来源记录。保留像素北京街机风格，不自动改换视觉体系。
+
+允许按需采用 Tailwind，通过 npm 和 Vite 本地构建；不使用浏览器 CDN。实际使用的字体、图片、图标、脚本、样式及其嵌套资源必须保存到项目并同源提供。运行时仅高德地图所需服务允许联网；开发时仍可查阅资料与下载依赖。项目字体和像素图形已在本地，地图需要外网。
+
+`npm run test:resources` 检查三个角色的冷启动、等待页和真实地图大厅，禁止非高德的外部资源请求。必须使用独立且初始无房间的后端，启动生产构建预览的方法见 `PLAYTEST.md`。它不代替完整游戏流程测试。

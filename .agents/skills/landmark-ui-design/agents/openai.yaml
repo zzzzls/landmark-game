@@ -1,0 +1,4 @@
+interface:
+  display_name: "北京地标 UI 设计"
+  short_description: "保留像素北京街机风格，参考已核验设计来源并确保静态资源本地加载"
+  default_prompt: "使用 $landmark-ui-design 改进当前游戏界面，保留像素风并验证手机地图交互与资源本地化。"

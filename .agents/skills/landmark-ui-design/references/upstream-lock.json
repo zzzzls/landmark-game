@@ -1,0 +1,83 @@
+{
+  "checked_at": "2026-09-20",
+  "skills": [
+    {
+      "name": "beui",
+      "repository": "https://github.com/starc007/ui-components",
+      "commit": "90c29d7f80f661263f7b424629738e40a5a48db7",
+      "path": "skills/beui",
+      "skill_sha256_upstream": "63fc9de2fa6b2c8fd159fd62b65b8814200dc2a1c46c9a75d5db791fb4e93966",
+      "skill_sha256_local": "63fc9de2fa6b2c8fd159fd62b65b8814200dc2a1c46c9a75d5db791fb4e93966",
+      "license": {
+        "id": "MIT",
+        "source": "https://raw.githubusercontent.com/starc007/ui-components/90c29d7f80f661263f7b424629738e40a5a48db7/LICENSE",
+        "local": "LICENSE",
+        "sha256": "9e27b491d5691a1bd95708e79de23beb2962f33fe6c1ee31ab639f43009a0b20"
+      },
+      "local_changes": []
+    },
+    {
+      "name": "transitions-dev",
+      "repository": "https://github.com/Jakubantalik/transitions.dev",
+      "commit": "598d3d6ad89dabb4bdf742fd2e887ca53914a888",
+      "path": "skills/transitions-dev",
+      "skill_sha256_upstream": "6a8b9a1a49cd392994d8f07714b7fb5cbe138d615f48c2d9215c460619eba1cd",
+      "skill_sha256_local": "5b2d1d4ca4248bbe3f177eb537fe4db8de68bdf849b21d30e8dc01d335f51b61",
+      "license": {
+        "id": null,
+        "note": "Author publishes a free installable skill; pinned repository has no standalone LICENSE. Do not relabel as MIT. Recheck terms before redistributing recipes."
+      },
+      "local_changes": [
+        "Shortened discovery description to <=1024 characters; body unchanged."
+      ]
+    },
+    {
+      "name": "shadcn",
+      "repository": "https://github.com/shadcn-ui/ui",
+      "commit": "a87a63b2ca25143d26c8bd0903e4e9bc77b3f824",
+      "path": "skills/shadcn",
+      "skill_sha256_upstream": "deba6c5152d9835892fa7dffeb1fedbb689ddac7e59e14e57ec5eaf9463309e4",
+      "skill_sha256_local": "25133bc8cbb66cc6fcdbf562300750f593b7f855360d669fae7103ed1d9a8ca1",
+      "license": {
+        "id": "MIT",
+        "source": "https://raw.githubusercontent.com/shadcn-ui/ui/a87a63b2ca25143d26c8bd0903e4e9bc77b3f824/LICENSE.md",
+        "local": "LICENSE",
+        "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+      },
+      "local_changes": [
+        "Removed Claude-specific user-invocable frontmatter; Codex implicit selection remains enabled.",
+        "Renamed agents/openai.yml to openai.yaml; shortened UI description to <=64 characters; retained local icon files."
+      ]
+    },
+    {
+      "name": "design-taste-frontend",
+      "repository": "https://github.com/Leonxlnx/taste-skill",
+      "commit": "f41c71f8a01504265035b8a0551431965ce033cd",
+      "path": "skills/taste-skill",
+      "skill_sha256_upstream": "aa194351b246b8b4799099d4ed7b033d29eab6e6e3d58d8d2172978be7b3ec89",
+      "skill_sha256_local": "aa194351b246b8b4799099d4ed7b033d29eab6e6e3d58d8d2172978be7b3ec89",
+      "license": {
+        "id": "MIT",
+        "source": "https://raw.githubusercontent.com/Leonxlnx/taste-skill/f41c71f8a01504265035b8a0551431965ce033cd/LICENSE",
+        "local": "LICENSE",
+        "sha256": "4575a543ab88dad12ccea7d97e563d0bce5b448b06072e65d3264497dad326df"
+      },
+      "local_changes": []
+    },
+    {
+      "name": "redesign-existing-projects",
+      "repository": "https://github.com/Leonxlnx/taste-skill",
+      "commit": "f41c71f8a01504265035b8a0551431965ce033cd",
+      "path": "skills/redesign-skill",
+      "skill_sha256_upstream": "98ad3e5b051bfb71b2795f7e8a6aa0d32b51ee095606c098a4b2822ac07926c9",
+      "skill_sha256_local": "98ad3e5b051bfb71b2795f7e8a6aa0d32b51ee095606c098a4b2822ac07926c9",
+      "license": {
+        "id": "MIT",
+        "source": "https://raw.githubusercontent.com/Leonxlnx/taste-skill/f41c71f8a01504265035b8a0551431965ce033cd/LICENSE",
+        "local": "LICENSE",
+        "sha256": "4575a543ab88dad12ccea7d97e563d0bce5b448b06072e65d3264497dad326df"
+      },
+      "local_changes": []
+    }
+  ]
+}

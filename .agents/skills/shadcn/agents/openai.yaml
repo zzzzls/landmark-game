@@ -1,0 +1,5 @@
+interface:
+  display_name: "shadcn/ui"
+  short_description: "Find, install and adapt shadcn/ui components for this project."
+  icon_small: "./assets/shadcn-small.png"
+  icon_large: "./assets/shadcn.png"
