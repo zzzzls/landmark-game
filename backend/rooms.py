@@ -27,6 +27,7 @@ COLORS = [
 ]
 
 ROOM_TTL_S = 8 * 60 * 60
+SAME_PLACE_RADIUS_M = 50
 
 
 def haversine_m(lng1: float, lat1: float, lng2: float, lat2: float) -> float:
@@ -36,6 +37,30 @@ def haversine_m(lng1: float, lat1: float, lng2: float, lat2: float) -> float:
     dlng = math.radians(lng2 - lng1)
     a = math.sin(dlat / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlng / 2) ** 2
     return 2 * r * math.asin(math.sqrt(min(1.0, a)))
+
+
+def valid_coordinates(lng: float, lat: float) -> tuple[float, float]:
+    try:
+        lng_f, lat_f = float(lng), float(lat)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("地点坐标无效") from None
+    if not (math.isfinite(lng_f) and math.isfinite(lat_f)):
+        raise ValueError("地点坐标无效")
+    if not (-180 <= lng_f <= 180 and -90 <= lat_f <= 90):
+        raise ValueError("地点坐标无效")
+    return lng_f, lat_f
+
+
+def same_place(first: dict, second: dict) -> bool:
+    # Search and catalog entries may describe one landmark using different IDs.
+    first_name = "".join(first["name"].split()).casefold()
+    second_name = "".join(second["name"].split()).casefold()
+    return (
+        first["id"] == second["id"]
+        or bool(first_name and first_name == second_name)
+        or haversine_m(first["lng"], first["lat"], second["lng"], second["lat"])
+        <= SAME_PLACE_RADIUS_M
+    )
 
 
 def new_id(prefix: str = "") -> str:
@@ -144,62 +169,52 @@ class Room:
 
     def assign_targets(self) -> None:
         ready = [p for p in self.players.values() if len(p.contributions) >= 2]
+        assignments: list[tuple[Player, list[dict]]] = []
         for p in ready:
-            own_ids = {c["id"] for c in p.contributions}
-            others: list[dict] = []
-            for q in self.players.values():
-                if q.id == p.id:
-                    continue
-                others.extend(q.contributions)
-            others = [c for c in others if c["id"] not in own_ids]
-            pool = [c for c in self.pool if c["id"] not in own_ids]
+            def eligible(item: dict, selected: list[dict]) -> bool:
+                return not any(same_place(item, other) for other in p.contributions + selected)
+
+            pool = [c for c in self.pool if eligible(c, [])]
+            random.shuffle(pool)
+            # Fall back to the full catalog if the room's sample has too few
+            # distinct landmarks. Apply the same exclusions to fallback items.
+            extra = [
+                {
+                    "id": f"pool_{c['id']}",
+                    "name": c["name"],
+                    "lng": c["lng"],
+                    "lat": c["lat"],
+                    "from_pool": True,
+                }
+                for c in CATALOG
+            ]
+            random.shuffle(extra)
+            system = pool + extra
             selected: list[dict] = []
-            selected_ids: set[str] = set()
-
-            if not others:
-                # Solo / only one ready player: own 2 contributions + 1 pool item.
-                for item in p.contributions:
-                    if item["id"] in selected_ids:
-                        continue
+            for item in system:
+                if eligible(item, selected):
                     selected.append(item)
-                    selected_ids.add(item["id"])
-                if pool:
-                    pick = random.choice(pool)
-                    if pick["id"] not in selected_ids:
-                        selected.append(pick)
-                        selected_ids.add(pick["id"])
+                    break
+
+            if len(ready) == 1:
+                candidates = system
             else:
-                if pool:
-                    pick = random.choice(pool)
-                    selected.append(pick)
-                    selected_ids.add(pick["id"])
-
-                combined = [c for c in (others + pool) if c["id"] not in selected_ids]
-                random.shuffle(combined)
-                for item in combined:
-                    if len(selected) >= 3:
-                        break
-                    if item["id"] in selected_ids:
-                        continue
+                others = [c for q in self.players.values() if q.id != p.id for c in q.contributions]
+                candidates = others + pool
+                random.shuffle(candidates)
+                candidates += extra
+            for item in candidates:
+                if len(selected) == 3:
+                    break
+                if eligible(item, selected):
                     selected.append(item)
-                    selected_ids.add(item["id"])
+            if len(selected) != 3:
+                raise ValueError("可用地点不足 3 个，请调整贡献地点")
+            assignments.append((p, selected))
 
-            if len(selected) < 3:
-                extra = [c for c in CATALOG if f"pool_{c['id']}" not in selected_ids]
-                random.shuffle(extra)
-                for c in extra:
-                    if len(selected) >= 3:
-                        break
-                    item = {
-                        "id": f"fill_{c['id']}_{p.id}",
-                        "name": c["name"],
-                        "lng": c["lng"],
-                        "lat": c["lat"],
-                        "from_pool": True,
-                    }
-                    selected.append(item)
-
-            p.targets = selected[:3]
+        # Do not leave a partially assigned room if validation ever fails.
+        for p, selected in assignments:
+            p.targets = selected
             p.guesses = {}
             p.distances = {}
             p.total_error = None
@@ -210,11 +225,7 @@ class Room:
             raise ValueError("现在不能添加地点")
         if len(player.contributions) >= 2:
             raise ValueError("每位玩家只需添加 2 个地点")
-        try:
-            lng_f = float(lng)
-            lat_f = float(lat)
-        except (TypeError, ValueError):
-            raise ValueError("地点坐标无效")
+        lng_f, lat_f = valid_coordinates(lng, lat)
         item = {
             "id": new_id("c_"),
             "name": name.strip() or "未命名地点",
@@ -236,7 +247,8 @@ class Room:
             raise ValueError("已经提交")
         if not any(t["id"] == target_id for t in player.targets):
             raise ValueError("不是你的题目")
-        player.guesses[target_id] = {"lng": float(lng), "lat": float(lat)}
+        lng_f, lat_f = valid_coordinates(lng, lat)
+        player.guesses[target_id] = {"lng": lng_f, "lat": lat_f}
 
     def unguess(self, player: Player, target_id: str) -> None:
         if self.phase != "playing":

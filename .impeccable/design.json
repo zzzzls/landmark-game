@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-20T13:13:54.920680+00:00",
+  "title": "Design System: 北京地标盲猜",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "米白",
+        "tonalRamp": [
+          "oklch(15.00% 0.0111 89.72)",
+          "oklch(26.43% 0.0111 89.72)",
+          "oklch(37.86% 0.0111 89.72)",
+          "oklch(49.29% 0.0111 89.72)",
+          "oklch(60.71% 0.0111 89.72)",
+          "oklch(72.14% 0.0111 89.72)",
+          "oklch(83.57% 0.0111 89.72)",
+          "oklch(95.00% 0.0111 89.72)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "暖白表面",
+        "tonalRamp": [
+          "oklch(15.00% 0.0069 88.64)",
+          "oklch(26.43% 0.0069 88.64)",
+          "oklch(37.86% 0.0069 88.64)",
+          "oklch(49.29% 0.0069 88.64)",
+          "oklch(60.71% 0.0069 88.64)",
+          "oklch(72.14% 0.0069 88.64)",
+          "oklch(83.57% 0.0069 88.64)",
+          "oklch(95.00% 0.0069 88.64)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "深墨",
+        "tonalRamp": [
+          "oklch(15.00% 0.0100 186.19)",
+          "oklch(26.43% 0.0100 186.19)",
+          "oklch(37.86% 0.0100 186.19)",
+          "oklch(49.29% 0.0100 186.19)",
+          "oklch(60.71% 0.0100 186.19)",
+          "oklch(72.14% 0.0100 186.19)",
+          "oklch(83.57% 0.0100 186.19)",
+          "oklch(95.00% 0.0100 186.19)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "次要文字",
+        "tonalRamp": [
+          "oklch(15.00% 0.0099 145.43)",
+          "oklch(26.43% 0.0099 145.43)",
+          "oklch(37.86% 0.0099 145.43)",
+          "oklch(49.29% 0.0099 145.43)",
+          "oklch(60.71% 0.0099 145.43)",
+          "oklch(72.14% 0.0099 145.43)",
+          "oklch(83.57% 0.0099 145.43)",
+          "oklch(95.00% 0.0099 145.43)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "分隔线",
+        "tonalRamp": [
+          "oklch(15.00% 0.0148 106.69)",
+          "oklch(26.43% 0.0148 106.69)",
+          "oklch(37.86% 0.0148 106.69)",
+          "oklch(49.29% 0.0148 106.69)",
+          "oklch(60.71% 0.0148 106.69)",
+          "oklch(72.14% 0.0148 106.69)",
+          "oklch(83.57% 0.0148 106.69)",
+          "oklch(95.00% 0.0148 106.69)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "朱红",
+        "tonalRamp": [
+          "oklch(15.00% 0.1502 31.98)",
+          "oklch(26.43% 0.1502 31.98)",
+          "oklch(37.86% 0.1502 31.98)",
+          "oklch(49.29% 0.1502 31.98)",
+          "oklch(60.71% 0.1502 31.98)",
+          "oklch(72.14% 0.1502 31.98)",
+          "oklch(83.57% 0.1502 31.98)",
+          "oklch(95.00% 0.1502 31.98)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "深朱红",
+        "tonalRamp": [
+          "oklch(15.00% 0.1339 31.06)",
+          "oklch(26.43% 0.1339 31.06)",
+          "oklch(37.86% 0.1339 31.06)",
+          "oklch(49.29% 0.1339 31.06)",
+          "oklch(60.71% 0.1339 31.06)",
+          "oklch(72.14% 0.1339 31.06)",
+          "oklch(83.57% 0.1339 31.06)",
+          "oklch(95.00% 0.1339 31.06)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "浅朱红",
+        "tonalRamp": [
+          "oklch(15.00% 0.0204 53.25)",
+          "oklch(26.43% 0.0204 53.25)",
+          "oklch(37.86% 0.0204 53.25)",
+          "oklch(49.29% 0.0204 53.25)",
+          "oklch(60.71% 0.0204 53.25)",
+          "oklch(72.14% 0.0204 53.25)",
+          "oklch(83.57% 0.0204 53.25)",
+          "oklch(95.00% 0.0204 53.25)"
+        ]
+      },
+      "green": {
+        "role": "semantic",
+        "displayName": "成功与真实位置",
+        "tonalRamp": [
+          "oklch(15.00% 0.0699 157.89)",
+          "oklch(26.43% 0.0699 157.89)",
+          "oklch(37.86% 0.0699 157.89)",
+          "oklch(49.29% 0.0699 157.89)",
+          "oklch(60.71% 0.0699 157.89)",
+          "oklch(72.14% 0.0699 157.89)",
+          "oklch(83.57% 0.0699 157.89)",
+          "oklch(95.00% 0.0699 157.89)"
+        ]
+      },
+      "error": {
+        "role": "semantic",
+        "displayName": "错误",
+        "tonalRamp": [
+          "oklch(15.00% 0.1542 27.56)",
+          "oklch(26.43% 0.1542 27.56)",
+          "oklch(37.86% 0.1542 27.56)",
+          "oklch(49.29% 0.1542 27.56)",
+          "oklch(60.71% 0.1542 27.56)",
+          "oklch(72.14% 0.1542 27.56)",
+          "oklch(83.57% 0.1542 27.56)",
+          "oklch(95.00% 0.1542 27.56)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "正文",
+        "purpose": "系统中文无衬线字体栈；全站默认。"
+      },
+      "display": {
+        "displayName": "首页大标题",
+        "purpose": "桌面首页展示标题；移动尺寸见 DESIGN.md。"
+      },
+      "task-title": {
+        "displayName": "当前任务",
+        "purpose": "面板标题与当前地点。"
+      },
+      "section-title": {
+        "displayName": "分节标题",
+        "purpose": "默认 h2；局部列表标题另有较小尺寸。"
+      },
+      "label": {
+        "displayName": "表单标签",
+        "purpose": "持续可见的输入标签。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow",
+        "value": "0 10px 36px rgb(37 44 43 / 13%)",
+        "purpose": "--shadow：桌面地图面板、对话框、toast。"
+      },
+      {
+        "name": "mobile-panel",
+        "value": "0 -6px 30px #252c2b16",
+        "purpose": "手机底部任务面板；组件局部值。"
+      },
+      {
+        "name": "map-caption",
+        "value": "0 3px 12px #252c2b10",
+        "purpose": "地图说明标签；组件局部值。"
+      },
+      {
+        "name": "room-tab-selected",
+        "value": "0 2px 5px #252c2b0a",
+        "purpose": "房主选中视图；组件局部值。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "--ease：短促状态动效。"
+      },
+      {
+        "name": "button-transition",
+        "value": "background 0.16s ease, transform 0.16s ease",
+        "purpose": "主、次、文字及图标按钮。"
+      },
+      {
+        "name": "pin-drop",
+        "value": "0.3s var(--ease)",
+        "purpose": "地图预览点落下。"
+      },
+      {
+        "name": "result-arrive",
+        "value": "0.45s var(--ease)",
+        "purpose": "揭晓成绩摘要出现。"
+      },
+      {
+        "name": "panel-open",
+        "value": "0.22s var(--ease)",
+        "purpose": "手机展开面板内容出现。"
+      },
+      {
+        "name": "progress",
+        "value": "transform 0.5s var(--ease)",
+        "purpose": "提交进度变化。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-max",
+        "value": "860px"
+      },
+      {
+        "name": "desktop-min",
+        "value": "861px"
+      },
+      {
+        "name": "compact-mobile-max",
+        "value": "380px"
+      },
+      {
+        "name": "short-mobile",
+        "value": "(max-height: 650px) and (max-width: 860px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
+      "html": "<button class=\"ds-button-primary\">确认位置</button>",
+      "css": ".ds-button-primary{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:50px;background:var(--accent,#ae3e2b);color:var(--surface,#fffdf8);padding:13px 20px;border:0;border-radius:12px;font-weight:600;}.ds-button-primary:hover:not(:disabled){background:var(--accent-dark,#8f2e20);}.ds-button-primary:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-primary:disabled{opacity:.46;cursor:not-allowed;}.ds-button-primary:active:not(:disabled){transform:translateY(1px);}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
+    },
+    {
+      "name": "次按钮",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
+      "html": "<button class=\"ds-button-secondary\">重新选</button>",
+      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;background:var(--surface,#fffdf8);color:var(--ink,#252c2b);padding:10px 16px;border:1px solid var(--line,#deded3);border-radius:12px;font-weight:550;}.ds-button-secondary:hover:not(:disabled){background:#eeeee5;}.ds-button-secondary:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-secondary:disabled{opacity:.46;cursor:not-allowed;}.ds-button-secondary:active:not(:disabled){transform:translateY(1px);}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
+    },
+    {
+      "name": "文字按钮",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
+      "html": "<button class=\"ds-button-text\">查看指引</button>",
+      "css": ".ds-button-text{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;background:none;color:var(--accent,#ae3e2b);padding:6px 8px;border:0;font-size:14px;}.ds-button-text:hover:not(:disabled){background:var(--accent-soft,#f7e8df);border-radius:8px;}.ds-button-text:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-text:disabled{opacity:.46;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-text{transition:none;}}"
+    },
+    {
+      "name": "图标按钮",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "当前实现的按钮样式；禁用状态由实际业务决定。",
+      "html": "<button class=\"ds-button-icon\" aria-label=\"关闭\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"m6 6 12 12M6 18 18 6\"/></svg></button>",
+      "css": ".ds-button-icon{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:inherit;cursor:pointer;transition:background .16s ease,transform .16s ease;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;min-height:44px;width:44px;min-width:44px;background:none;color:var(--muted,#656a65);padding:10px;border:0;border-radius:50%;}.ds-button-icon:hover:not(:disabled){background:#eaeade;color:var(--ink,#252c2b);}.ds-button-icon:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-button-icon:disabled{opacity:.46;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-icon{transition:none;}}"
+    },
+    {
+      "name": "输入框",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "持续可见标签，16px 输入文字与朱红聚焦反馈。",
+      "html": "<label class=\"ds-label\" for=\"ds-nickname\">你的昵称<input id=\"ds-nickname\" class=\"ds-input\" placeholder=\"朋友们怎么称呼你？\" /></label>",
+      "css": ".ds-label{display:block;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;font-size:14px;font-weight:550;color:var(--ink,#252c2b);}.ds-input{display:block;width:100%;min-height:50px;margin-top:8px;padding:13px 15px;border:1px solid #bfc2b6;border-radius:10px;background:var(--surface,#fffdf8);color:var(--ink,#252c2b);font:400 16px/1.55 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;caret-color:var(--accent,#ae3e2b);outline:none;}.ds-input::placeholder{color:var(--muted,#656a65);}.ds-input:focus,.ds-input:focus-visible{border-color:var(--accent,#ae3e2b);box-shadow:0 0 0 2px #ae3e2b20;}"
+    },
+    {
+      "name": "房主视图导航",
+      "kind": "nav",
+      "refersTo": "room-tab-selected",
+      "description": "同一连接切换管理与答题；预览只展示现有样式。",
+      "html": "<div class=\"ds-room-tabs\" role=\"group\" aria-label=\"房主视图\"><button aria-pressed=\"true\">房间管理</button><button aria-pressed=\"false\">我的答题</button></div>",
+      "css": ".ds-room-tabs{display:flex;padding:5px;gap:4px;border-radius:10px;background:#efefe5;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-room-tabs button{flex:1;min-height:44px;border:0;border-radius:7px;background:none;color:var(--muted,#656a65);font:inherit;font-size:13px;cursor:pointer;}.ds-room-tabs button[aria-pressed=\"true\"]{background:var(--surface,#fffdf8);color:var(--accent,#ae3e2b);box-shadow:0 2px 5px #252c2b0a;font-weight:650;}.ds-room-tabs button:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}"
+    },
+    {
+      "name": "题目选择",
+      "kind": "chip",
+      "refersTo": "target-selected",
+      "description": "数字与确认勾表达题号和完成状态。",
+      "html": "<div class=\"ds-targets\" role=\"group\" aria-label=\"选择题目\"><button aria-pressed=\"true\" aria-label=\"第1题\"><span>1</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg></button><button aria-pressed=\"false\" aria-label=\"第2题\">2<span class=\"ds-dash\"></span></button></div>",
+      "css": ".ds-targets{display:flex;gap:10px;font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-targets button{display:flex;flex:1;align-items:center;justify-content:center;gap:14px;min-height:44px;border:1px solid transparent;border-radius:9px;background:#efefe5;color:var(--muted,#656a65);font:inherit;font-variant-numeric:tabular-nums;cursor:pointer;}.ds-targets button[aria-pressed=\"true\"]{background:var(--accent-soft,#f7e8df);color:var(--accent,#ae3e2b);border-color:#d4a18c;}.ds-targets button:focus-visible{outline:3px solid var(--accent,#ae3e2b);outline-offset:3px;}.ds-dash{width:12px;height:2px;background:#b5b9aa;}"
+    },
+    {
+      "name": "入口容器",
+      "kind": "card",
+      "refersTo": "entry-panel",
+      "description": "暖白边框容器；手机改用较小圆角与内边距。",
+      "html": "<section class=\"ds-entry\"><h2>朋友们，集合了</h2><p>输入房间号，加入这一场城市探索。</p></section>",
+      "css": ".ds-entry{padding:32px;background:var(--surface,#fffdf8);border:1px solid var(--line,#deded3);border-radius:22px;color:var(--ink,#252c2b);font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;}.ds-entry h2{margin:0;font-size:25px;font-weight:650;line-height:1.3;letter-spacing:-.02em;}.ds-entry p{margin:8px 0 0;font-size:13px;line-height:1.55;color:var(--muted,#656a65);}@media(max-width:860px){.ds-entry{padding:24px;border-radius:18px;}.ds-entry h2{font-size:22px;}.ds-entry p{font-size:12px;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "城市记忆地图",
+    "overview": "米白底承托真实地图，深墨文字说明当前任务，朱红强调落点、选择与主操作。保持轻量、清楚的中文界面，让手机玩家随时知道正在猜什么、下一步按哪里；房主与现场大屏沿用同一套视觉语言。\n\n本文记录当前实现。色彩与字体以 frontmatter 为提取基准，运行实现来源为 `src/styles.css`；组件内的固定尺寸并不表示已建立独立 CSS token。sidecar 的合成色阶仅供设计面板预览，不是应用中已有的色阶。",
+    "keyCharacteristics": [
+      "米白表面、深墨文字、朱红动作重点。",
+      "真实无文字高德底图与清楚区分的猜测点、真实点。",
+      "手机底部任务面板、桌面侧栏、独立观众大屏。",
+      "短句、可触控按钮和可见的当前题与主操作。"
+    ],
+    "rules": [],
+    "dos": [
+      "Do 保留中文、当前题、下一步动作与明确等待状态。",
+      "Do 用真实无文字高德地图，并保持版权与关键标记可见。",
+      "Do 检查手机安全区、短屏、长名称、键盘焦点和减少动效偏好。",
+      "Do 让玩家、房主和现场大屏共享色彩与组件语言，分别适配各自布局。"
+    ],
+    "donts": [
+      "Don't 用颜色作为选中、完成或失败的唯一信息。",
+      "Don't 将主操作藏进折叠菜单，或让长内容挤掉操作区。",
+      "Don't 在服务端确认前显示操作成功，或把缺失成绩显示为零。",
+      "Don't 将本文、截图或组件预览当成真实地图及完整游戏流程验收。"
+    ]
+  }
+}

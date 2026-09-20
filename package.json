@@ -8,13 +8,17 @@
     "backend": ".venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload",
     "dev:all": "node scripts/dev.mjs",
     "build": "vite build",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "test:rules": "uv run python -m unittest discover -s tests -v",
+    "test:unit": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.4.11"
   }

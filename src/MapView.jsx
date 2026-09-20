@@ -19,18 +19,6 @@ function hideMapText(map) {
       /* ignore */
     }
   }
-  try {
-    const layers = typeof map.getLayers === "function" ? map.getLayers() : [];
-    for (const layer of layers) {
-      const name = String(layer?.CLASS_NAME || "");
-      if (name.includes("TileLayer") && typeof layer.setTileUrl === "function") {
-        layer.setTileUrl(TILE_BG_ROAD_NO_LABEL);
-        if (typeof layer.reload === "function") layer.reload();
-      }
-    }
-  } catch {
-    /* ignore */
-  }
 }
 
 function escapeHtml(s) {
@@ -51,7 +39,8 @@ function pinHtml({ name, label, tag, color, kind, preview: isPreview }) {
   const fallback = kind === "guess" ? "预览" : "";
   const text = escapeHtml(truncatePinName(name || label || fallback));
   const tagHtml = tag ? `<span class="mk-tag">${escapeHtml(tag)}</span>` : "";
-  const kindClass = kind === "true" ? " mk-true" : kind === "guess" ? " mk-guess" : "";
+  const kindClass =
+    kind === "true" ? " mk-true" : kind === "guess" ? " mk-guess" : "";
   const previewClass = isPreview ? " mk-preview" : "";
   return `<div class="mk${kindClass}${previewClass}" style="--pin:${escapeHtml(c)}"><span class="mk-dot"></span><span class="mk-label">${text}${tagHtml}</span></div>`;
 }
@@ -65,6 +54,10 @@ export default function MapView({
   onPreviewClick,
   fitKey,
   fitPadding = [40, 40, 40, 40],
+  onStatusChange,
+  focusPoint,
+  focusKey,
+  focusZoom = 12,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
@@ -74,6 +67,17 @@ export default function MapView({
   const onPreviewClickRef = useRef(onPreviewClick);
   const [status, setStatus] = useState("loading");
   const [nonce, setNonce] = useState(0);
+  const [mapSize, setMapSize] = useState([0, 0]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const statusCallbackRef = useRef(onStatusChange);
+  statusCallbackRef.current = onStatusChange;
+  const lastFitRef = useRef(null);
+  const overlaySignature = JSON.stringify([pins, lines, preview]);
+  const paddingSignature = JSON.stringify(fitPadding);
+
+  useEffect(() => {
+    statusCallbackRef.current?.(status);
+  }, [status]);
 
   useEffect(() => {
     clickableRef.current = clickable;
@@ -83,7 +87,37 @@ export default function MapView({
 
   useEffect(() => {
     let cancelled = false;
+    let ownedMap = null;
+    let readyTimer = null;
+    let dragTimer = null;
     setStatus("loading");
+    setErrorMessage("");
+    lastFitRef.current = null;
+    overlayRef.current = [];
+    const fail = (code) => {
+      if (cancelled) return;
+      clearTimeout(readyTimer);
+      if (ownedMap) {
+        ownedMap.destroy();
+        ownedMap = null;
+        mapRef.current = null;
+      }
+      const messages = {
+        missing_js_key: "尚未配置高德地图 Key，请房主检查本地地图配置后重试。",
+        map_config_invalid:
+          "高德地图配置无效，请房主检查 Key 与安全密钥后重试。",
+        map_config_unavailable:
+          "暂时无法读取地图配置，请确认游戏服务已启动后重试。",
+        map_config_timeout: "读取地图配置超时，请检查与游戏服务器的连接。",
+        map_network_failed: "无法连接高德地图，请检查网络后重试。",
+        map_network_timeout: "高德地图加载超时，请检查网络后重试。",
+        map_tiles_timeout: "地图尚未加载完成，请检查网络及高德配置后重试。",
+      };
+      setErrorMessage(
+        messages[code] || "地图加载失败，请检查网络及高德配置后重试。",
+      );
+      setStatus("error");
+    };
     (async () => {
       try {
         const AMap = await loadAmap();
@@ -92,49 +126,91 @@ export default function MapView({
           viewMode: "2D",
           zoom: 12,
           center: BEIJING_CENTER,
+          layers: [new AMap.TileLayer({ tileUrl: TILE_BG_ROAD_NO_LABEL })],
           features: ["bg", "road"],
           showLabel: false,
           mapStyle: MAP_STYLE,
           isHotspot: false,
           showIndoorMap: false,
           jogEnable: false,
+          // A quick second pin must not start a zoom animation that can
+          // outlive submission/reveal. Touch pinch and wheel zoom remain.
+          doubleClickZoom: false,
         });
+        ownedMap = map;
         mapRef.current = map;
         let ignoreClick = false;
         map.on("dragstart", () => {
+          clearTimeout(dragTimer);
           ignoreClick = true;
         });
         map.on("dragend", () => {
-          window.setTimeout(() => {
+          dragTimer = setTimeout(() => {
             ignoreClick = false;
-          }, 50);
+          }, 80);
         });
         map.on("complete", () => {
+          if (cancelled || ownedMap !== map) return;
+          clearTimeout(readyTimer);
           hideMapText(map);
-          if (!cancelled) setStatus("ready");
+          setStatus("ready");
         });
         map.on("click", (e) => {
-          if (ignoreClick) return;
-          if (!clickableRef.current) return;
-          if (!onClickRef.current) return;
-          const lng = e.lnglat.getLng();
-          const lat = e.lnglat.getLat();
-          onClickRef.current(lng, lat);
+          if (ignoreClick || !clickableRef.current || !onClickRef.current)
+            return;
+          onClickRef.current(e.lnglat.getLng(), e.lnglat.getLat());
         });
+        readyTimer = setTimeout(() => fail("map_tiles_timeout"), 20000);
         hideMapText(map);
-        if (!cancelled) setStatus("ready");
-      } catch {
-        if (!cancelled) setStatus("error");
+      } catch (error) {
+        fail(error.message);
       }
     })();
     return () => {
       cancelled = true;
-      if (mapRef.current) {
-        mapRef.current.destroy();
-        mapRef.current = null;
-      }
+      clearTimeout(readyTimer);
+      clearTimeout(dragTimer);
+      if (ownedMap) ownedMap.destroy();
+      mapRef.current = null;
+      overlayRef.current = [];
     };
   }, [nonce]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const element = elRef.current;
+    if (!map || !element || status !== "ready") return;
+    let frame;
+    let cancelled = false;
+    const syncSize = () => {
+      if (cancelled) return;
+      const { width, height } = map.getSize();
+      // The SDK resize event can precede its internal size update.
+      if (width !== element.clientWidth || height !== element.clientHeight) {
+        frame = requestAnimationFrame(syncSize);
+        return;
+      }
+      setMapSize((previous) =>
+        previous[0] === width && previous[1] === height
+          ? previous
+          : [width, height],
+      );
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(syncSize);
+    };
+    const observer = new ResizeObserver(schedule);
+    observer.observe(element);
+    map.on("resize", schedule);
+    schedule();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      map.off("resize", schedule);
+    };
+  }, [status, nonce]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -163,13 +239,14 @@ export default function MapView({
           lineCap: "round",
           bubble: true,
           clickable: false,
-        })
+        }),
       );
     }
     const all = [...pins];
     if (preview && preview.lng != null && preview.lat != null) {
       const kind = preview.kind || (preview.name ? undefined : "guess");
-      const rawName = preview.name || preview.label || (kind === "guess" ? "预览" : "");
+      const rawName =
+        preview.name || preview.label || (kind === "guess" ? "预览" : "");
       all.push({
         key: "preview",
         lng: preview.lng,
@@ -199,27 +276,76 @@ export default function MapView({
     }
     if (extras.length) map.add(extras);
     overlayRef.current = extras;
-    if (fitKey && (extras.length > 1 || lines.length)) {
-      try {
-        const pad = fitPadding && fitPadding.length === 4 ? fitPadding : [40, 40, 40, 40];
-        map.setFitView(extras, false, pad);
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [pins, lines, preview, fitKey, fitPadding, status]);
+  }, [overlaySignature, status]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || status !== "ready") return;
-    if (preview == null || preview.lng == null || preview.lat == null) return;
-    if (preview.zoom === false) return;
+    const extras = overlayRef.current;
+    if (!map || status !== "ready" || !fitKey || !extras.length) return;
+    const signature = JSON.stringify([fitKey, paddingSignature, mapSize]);
+    if (lastFitRef.current === signature) return;
+    const frame = requestAnimationFrame(() => {
+      const element = elRef.current;
+      const size = map.getSize();
+      if (
+        !element ||
+        size.width !== element.clientWidth ||
+        size.height !== element.clientHeight
+      )
+        return;
+      try {
+        const padding =
+          fitPadding?.length === 4 ? fitPadding : [40, 40, 40, 40];
+        // UI uses CSS order; AMap expects [top, bottom, left, right].
+        // https://developer.amap.com/api/javascript-api-v2/guide/map/state
+        const [top, right, bottom, left] = padding;
+        map.setFitView(
+          extras,
+          true,
+          [top + 16, bottom + 24, left + 16, right + 128],
+          16,
+        );
+        lastFitRef.current = signature;
+      } catch {
+        /* Retain the current viewport if bounds are unavailable. */
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fitKey, paddingSignature, overlaySignature, status, mapSize]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (
+      !map ||
+      fitKey ||
+      status !== "ready" ||
+      preview?.lng == null ||
+      preview?.lat == null ||
+      preview.zoom === false
+    )
+      return;
     try {
-      map.setZoomAndCenter(PREVIEW_ZOOM, [Number(preview.lng), Number(preview.lat)]);
+      map.setZoomAndCenter(
+        PREVIEW_ZOOM,
+        [Number(preview.lng), Number(preview.lat)],
+        true,
+      );
     } catch {
-      /* ignore */
+      /* A later preview can retry viewport positioning. */
     }
-  }, [preview, status]);
+  }, [preview?.lng, preview?.lat, preview?.zoom, status, fitKey]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (
+      !map ||
+      fitKey ||
+      status !== "ready" ||
+      !focusPoint?.every(Number.isFinite)
+    )
+      return;
+    map.setZoomAndCenter(focusZoom, focusPoint, true);
+  }, [focusKey, focusPoint?.[0], focusPoint?.[1], focusZoom, status, fitKey]);
 
   function retry() {
     setNonce((n) => n + 1);
@@ -231,8 +357,12 @@ export default function MapView({
       {status === "loading" && <div className="overlay">正在加载北京地图…</div>}
       {status === "error" && (
         <div className="overlay overlay-error">
-          <p>地图加载失败，请检查网络后重试。</p>
-          <button type="button" className="primary overlay-retry" onClick={retry}>
+          <p role="alert">{errorMessage}</p>
+          <button
+            type="button"
+            className="primary overlay-retry"
+            onClick={retry}
+          >
             重试
           </button>
         </div>

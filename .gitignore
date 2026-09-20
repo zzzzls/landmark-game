@@ -6,3 +6,8 @@ dist
 .venv
 __pycache__/
 *.pyc
+
+artifacts/
+test-results/
+playwright-report/
+.impeccable/review/
