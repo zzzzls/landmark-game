@@ -167,14 +167,15 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
     }
   }
   function pickTarget(id) {
+    if (disabled) return;
     setSelectedId(id);
     setPreview(null);
     setExpanded(false);
   }
   async function undo() {
-    if (!selectedGuess) return;
-    await act({ type: "unguess", targetId: selected.id }, "已撤销这个位置");
-    setPreview(null);
+    if (!selectedGuess || disabled) return;
+    const next = await act({ type: "unguess", targetId: selected.id }, "已撤销这个位置");
+    if (next) setPreview(null);
   }
   function requestStart() {
     if (!ready.length) return;
@@ -325,7 +326,7 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
         </div>
       )}
       <section
-        className={`task-panel ${expanded ? "expanded" : "collapsed"}`}
+        className={`task-panel ${expanded ? "expanded" : "collapsed"} ${playing ? "answer-panel" : ""}`}
         ref={panelRef}
         aria-label={managing ? "房间管理" : "游戏任务"}
       >
@@ -333,6 +334,7 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
           <div className="room-tabs" role="group" aria-label="房主视图">
             <button
               aria-pressed={tab === "manage"}
+              disabled={pending}
               onClick={() => {
                 setTab("manage");
                 setPreview(null);
@@ -344,6 +346,7 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
             </button>
             <button
               aria-pressed={tab === "play"}
+              disabled={pending}
               onClick={() => {
                 setTab("play");
                 setExpanded(phase === "lobby" || personalRevealed);
@@ -354,37 +357,52 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
             </button>
           </div>
         )}
-        <div className="task-heading">
-          <div>
-            <p className="task-subtitle">{subtitle}</p>
-            <h1>{state ? title : "正在进入房间"}</h1>
+        {playing ? (
+          <div className="answer-heading">
+            <div className="answer-progress">
+              <div className="target-tabs" role="group" aria-label="选择题目">
+                {targets.map((t, i) => {
+                  const saved = guesses.some((g) => g.targetId === t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      aria-label={`第${i + 1}题 ${t.name}`}
+                      aria-pressed={selected?.id === t.id}
+                      aria-describedby={`answer-state-${i}`}
+                      data-confirmed={saved}
+                      disabled={disabled}
+                      onClick={() => pickTarget(t.id)}
+                    >
+                      <span>{i + 1}</span>
+                      {saved ? <Icon name="check" size={16} /> : <span className="target-dash" />}
+                      <span id={`answer-state-${i}`} className="sr-only">{saved ? "已确认" : "未确认"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="answer-count" role="status" aria-live="polite" aria-atomic="true">已确认 {placed}/3</p>
+            </div>
+            <div className="task-heading">
+              <div>
+                <p className="task-subtitle">{subtitle}</p>
+                <h1 className="answer-title" tabIndex={0}>{title}</h1>
+              </div>
+            </div>
           </div>
-          <button
-            className={`icon-btn panel-toggle ${expanded ? "open" : ""}`}
-            aria-label={expanded ? "收起详情" : "展开详情"}
-            aria-expanded={expanded}
-            onClick={() => setExpanded((v) => !v)}
-          >
-            <Icon name="chevron" />
-          </button>
-        </div>
-        {playing && (
-          <div className="target-tabs" role="group" aria-label="选择题目">
-            {targets.map((t, i) => (
-              <button
-                key={t.id}
-                aria-label={`第${i + 1}题 ${t.name}`}
-                aria-pressed={selected?.id === t.id}
-                onClick={() => pickTarget(t.id)}
-              >
-                <span>{i + 1}</span>
-                {guesses.some((g) => g.targetId === t.id) ? (
-                  <Icon name="check" size={16} />
-                ) : (
-                  <span className="target-dash" />
-                )}
-              </button>
-            ))}
+        ) : (
+          <div className="task-heading">
+            <div>
+              <p className="task-subtitle">{subtitle}</p>
+              <h1>{state ? title : "正在进入房间"}</h1>
+            </div>
+            <button
+              className={`icon-btn panel-toggle ${expanded ? "open" : ""}`}
+              aria-label={expanded ? "收起详情" : "展开详情"}
+              aria-expanded={expanded}
+              onClick={() => setExpanded((v) => !v)}
+            >
+              <Icon name="chevron" />
+            </button>
           </div>
         )}
         {error && (
@@ -543,7 +561,7 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
             </>
           )}
         </div>
-        <footer className="task-footer">
+        <footer className={`task-footer ${playing ? "answer-footer" : ""}`}>
           {personalRevealed && (!managing || phase === "reveal") ? (
             <>
               <div className="result-actions">
@@ -629,57 +647,61 @@ export default function GameRoom({ code, name, role, onRestart, sessionReady = t
                   <Icon name="search" size={18} />
                 </button>
               )}
-              {playing &&
-                (preview ? (
-                  <div className="action-row">
-                    <button
-                      className="secondary"
-                      onClick={() => setPreview(null)}
-                    >
-                      取消
-                    </button>
-                    <button
-                      className="primary"
-                      disabled={disabled || mapStatus !== "ready"}
-                      onClick={confirmPin}
-                    >
-                      {pending ? "正在确认…" : "确认位置"}
-                      <Icon name="check" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="pin-hint">
-                      <span>
-                        {placed === 3
-                          ? "三题已完成，可以提交了"
-                          : selectedGuess
-                            ? "位置已保存，点地图可以修改"
-                            : "点地图，标记你猜的位置"}
-                      </span>
-                      {selectedGuess && (
-                        <button
-                          className="text-btn"
-                          disabled={disabled}
-                          onClick={undo}
-                        >
-                          <Icon name="undo" size={17} />
-                          撤销
-                        </button>
-                      )}
-                    </div>
-                    {placed === 3 && (
+              {playing && (
+                <div className={`answer-actions ${placed === 3 ? "answers-complete" : ""}`} aria-busy={pending}>
+                  {preview ? (
+                    <div className="action-row">
+                      <button
+                        className="secondary"
+                        disabled={disabled}
+                        onClick={() => setPreview(null)}
+                      >
+                        取消
+                      </button>
                       <button
                         className="primary"
-                        disabled={disabled}
-                        onClick={() => act({ type: "submit" }, "答案已提交")}
+                        disabled={disabled || mapStatus !== "ready"}
+                        onClick={confirmPin}
                       >
-                        {pending ? "正在提交…" : "提交全部答案"}
-                        <Icon name="arrow" />
+                        {pending ? "正在确认…" : "确认位置"}
+                        <Icon name="check" />
                       </button>
-                    )}
-                  </>
-                ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="pin-hint">
+                        <span>
+                          {placed === 3
+                            ? "三题已完成，可以提交了"
+                            : selectedGuess
+                              ? "位置已保存，点地图可以修改"
+                              : "点地图，选择你猜的位置"}
+                        </span>
+                        {selectedGuess && (
+                          <button
+                            className="text-btn"
+                            disabled={disabled}
+                            onClick={undo}
+                          >
+                            <Icon name="undo" size={17} />
+                            撤销
+                          </button>
+                        )}
+                      </div>
+                      {placed === 3 && (
+                        <button
+                          className="primary"
+                          disabled={disabled}
+                          onClick={() => act({ type: "submit" }, "答案已提交")}
+                        >
+                          {pending ? "正在提交…" : "提交全部答案"}
+                          <Icon name="arrow" />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               {phase === "playing" && !playing && !expanded && (
                 <button className="secondary" onClick={() => setExpanded(true)}>
                   查看大家的进度

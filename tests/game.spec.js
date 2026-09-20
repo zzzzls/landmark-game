@@ -224,7 +224,7 @@ async function answerAll(page) {
       .getByRole("button", { name: new RegExp(`^第${index}题 `) })
       .click();
     await confirmMapPin(page, index * 30);
-    await expect(page.locator(".task-subtitle")).toContainText(
+    await expect(page.locator(".answer-count")).toContainText(
       `已确认 ${index}/3`,
     );
   }
@@ -242,6 +242,111 @@ async function noHorizontalOverflow(page) {
   expect(Math.max(dimensions.document, dimensions.body)).toBeLessThanOrEqual(
     dimensions.viewport + 1,
   );
+}
+
+async function compactAnswerLayout(page, role) {
+  const panel = page.locator(".answer-panel");
+  const title = page.locator(".answer-title");
+  const actions = page.locator(".answer-actions");
+  const originalSize = page.viewportSize();
+  for (const viewport of [
+    { width: 360, height: 844 },
+    { width: 390, height: 844 },
+    { width: 430, height: 844 },
+    { width: 390, height: 568 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await stableMapLayout(page);
+    await expect(panel).toBeVisible();
+    await expect(page.getByRole("button", { name: /展开详情|收起详情/ })).toHaveCount(0);
+    await expect(page.locator(".answer-progress")).toBeInViewport();
+    await expect(title).toBeInViewport();
+    await expect(actions).toBeInViewport();
+    await expect(page.locator(".answer-count")).toContainText("已确认 0/3");
+    await expect(page.locator(".mk-reference")).toHaveCount(4);
+    await expect(page.locator(".amap-copyright")).toBeVisible();
+    await noHorizontalOverflow(page);
+    const before = await panel.boundingBox();
+    expect(before.height).toBeGreaterThanOrEqual(180);
+    expect(before.height).toBeLessThanOrEqual(role === "admin" ? 270 : 218);
+    expect((await actions.boundingBox()).height).toBeGreaterThanOrEqual(52);
+    if (role === "admin") {
+      for (const name of ["房间管理", "我的答题"])
+        await expect(page.getByRole("button", { name, exact: true })).toBeInViewport();
+    }
+    // A real tap near the lower map edge exercises the map's measured avoidance.
+    const point = await mapPoint(page);
+    await page.touchscreen.tap(point.x, Math.round(before.y - 28));
+    const confirm = page.getByRole("button", { name: "确认位置", exact: true });
+    await expect(confirm).toBeVisible();
+    await expect(confirm).toBeInViewport();
+    await expect(page.getByRole("button", { name: "取消", exact: true })).toBeInViewport();
+    await stableMapLayout(page);
+    expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
+    await capture(page, `${role}-answer-preview-${viewport.width}x${viewport.height}`);
+    await page.getByRole("button", { name: "取消", exact: true }).click();
+    await expect(confirm).not.toBeVisible();
+    await expect(page.locator(".answer-count")).toContainText("已确认 0/3");
+    expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
+
+    // Layout-only stress fixture: do not change React game state, server answers,
+    // or the real AMap instance. Restore the exact DOM before the next UI action.
+    const originalText = await title.textContent();
+    try {
+      await title.evaluate(el => { el.textContent = "北京奥林匹克森林公园南园南门"; });
+      const normal = await title.evaluate(el => ({
+        height: el.getBoundingClientRect().height,
+        scrollHeight: el.scrollHeight,
+        lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+      }));
+      expect(normal.height).toBeGreaterThanOrEqual(normal.lineHeight * 2 - 1);
+      expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
+      await title.evaluate(el => { el.textContent = "北京超长地点名称布局测试".repeat(14); });
+      const long = await title.evaluate(el => ({
+        clientHeight: el.clientHeight, scrollHeight: el.scrollHeight,
+        overflowY: getComputedStyle(el).overflowY,
+      }));
+      expect(long.scrollHeight).toBeGreaterThan(long.clientHeight);
+      expect(["auto", "scroll"]).toContain(long.overflowY);
+      await expect(actions).toBeInViewport();
+      await expect(page.locator(".answer-progress")).toBeInViewport();
+      await noHorizontalOverflow(page);
+      expect(Math.abs((await panel.boundingBox()).height - before.height)).toBeLessThanOrEqual(1);
+    } finally {
+      await title.evaluate((el, text) => { el.textContent = text; }, originalText);
+    }
+  }
+  await page.setViewportSize(originalSize);
+  await stableMapLayout(page);
+  const baseHeight = (await panel.boundingBox()).height;
+  const initialSafe = await panel.evaluate(el => el.style.getPropertyValue("--safe-b"));
+  try {
+    await panel.evaluate(el => el.style.setProperty("--safe-b", "24px"));
+    expect((await panel.boundingBox()).height - baseHeight).toBe(24);
+  } finally {
+    await panel.evaluate((el, value) => {
+      if (value) el.style.setProperty("--safe-b", value);
+      else el.style.removeProperty("--safe-b");
+    }, initialSafe);
+  }
+  await title.focus();
+  await expect(title).toBeFocused();
+  await expect(title).toBeInViewport();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const transitions = await page.locator(".answer-progress .target-tabs button").evaluateAll(buttons =>
+    buttons.map(button => getComputedStyle(button).transitionDuration));
+  for (const duration of transitions)
+    expect(duration.split(",").every(value => parseFloat(value) <= 0.00001)).toBe(true);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  await expect(page.locator(".task-subtitle")).toBeVisible();
+  await expect(page.locator(".answer-count")).not.toBeVisible();
+  await expect(page.getByRole("group", { name: "选择题目", exact: true })).toBeVisible();
+  await expect(title).toBeVisible();
+  await noHorizontalOverflow(page);
+  await capture(page, `${role}-answer-desktop-1440`);
+  await page.setViewportSize(originalSize);
+  await stableMapLayout(page);
 }
 
 async function pinsInsideVisibleMap(page, panelSelector) {
@@ -416,6 +521,7 @@ test("waiting players and screen follow create, private immediate scores, final 
       expect(firstState.current.references.map(place => place.name)).not.toContain(target.name);
     expect(screenState.current.truePins).toBeUndefined();
     await noHorizontalOverflow(first.page);
+    await compactAnswerLayout(first.page, "player");
     await capture(first.page, "player-guessing-390");
     const point = await mapPoint(first.page);
     const gesture = await first.context.newCDPSession(first.page);
@@ -427,14 +533,29 @@ test("waiting players and screen follow create, private immediate scores, final 
     await answerAll(first.page);
     await first.page.getByRole("button", { name: /^第1题 / }).click();
     await first.page.getByRole("button", { name: "撤销", exact: true }).click();
-    await expect(first.page.locator(".task-subtitle")).toContainText("已确认 2/3");
+    await expect(first.page.locator(".answer-count")).toContainText("已确认 2/3");
     await expect(first.page.getByRole("button", { name: "提交全部答案", exact: true })).not.toBeVisible();
     await confirmMapPin(first.page, 90);
     await first.page.getByRole("button", { name: /^第1题 / }).click();
+    const savedGuesses = JSON.stringify(firstState.current.you.guesses);
+    const allConfirmedHeight = (await first.page.locator(".answer-panel").boundingBox()).height;
+    const submitBounds = await first.page.getByRole("button", { name: "提交全部答案", exact: true }).boundingBox();
+    const revisedPoint = await mapPoint(first.page, 120);
+    await first.page.touchscreen.tap(revisedPoint.x, revisedPoint.y);
+    await expect(first.page.getByRole("button", { name: "确认位置", exact: true })).toBeVisible();
+    await expect(first.page.getByRole("button", { name: "提交全部答案", exact: true })).not.toBeVisible();
+    expect((await first.page.locator(".answer-panel").boundingBox()).height).toBe(allConfirmedHeight);
+    const confirmBounds = await first.page.getByRole("button", { name: "确认位置", exact: true }).boundingBox();
+    expect(confirmBounds.x).toBe(submitBounds.x);
+    expect(confirmBounds.width).toBe(submitBounds.width);
+    await first.page.getByRole("button", { name: "取消", exact: true }).click();
+    await expect(first.page.getByRole("button", { name: "提交全部答案", exact: true })).toBeVisible();
+    expect(JSON.stringify(firstState.current.you.guesses)).toBe(savedGuesses);
+    await capture(first.page, "player-answer-all-confirmed-390");
     await confirmMapPin(first.page, 120);
     await first.page.reload();
     await mapReady(first.page);
-    await expect(first.page.locator(".task-subtitle")).toContainText("已确认 3/3");
+    await expect(first.page.locator(".answer-count")).toContainText("已确认 3/3");
     await submit(first.page);
     await ownResults(first.page, firstState);
     await expect(first.page.locator(".game-room")).toHaveAttribute("data-phase", "playing");
@@ -537,6 +658,7 @@ test("solo participating administrator sees truthful first-frame results and pre
     expect(state.current.you.targets).toHaveLength(3);
     expect(state.current.you.targets.every(target => target.id.startsWith("pool_"))).toBe(true);
     expect(state.current.you.targets.some(target => ["天坛", "故宫"].includes(target.name))).toBe(false);
+    await compactAnswerLayout(host.page, "admin");
     await capture(host.page, "solo-guessing-360");
     await answerAll(host.page);
     await host.page.evaluate(observeSettlement);
@@ -592,15 +714,16 @@ test("early reveal, late spectator and network recovery keep incomplete results 
     await contribute(player.page, "颐和园");
     await startRoom(host.page);
     await confirmMapPin(player.page);
-    await expect(player.page.locator(".task-subtitle")).toContainText("已确认 1/3");
+    await expect(player.page.locator(".answer-count")).toContainText("已确认 1/3");
+    await player.page.getByRole("button", { name: /^第1题 / }).click();
     await interruptNetwork(player);
     await expect(player.page.locator(".map-pane")).not.toHaveClass(/clickable/);
-    await player.page.getByRole("button", { name: /^第1题 / }).click();
+    await expect(player.page.getByRole("button", { name: /^第1题 / })).toBeDisabled();
     await expect(player.page.getByRole("button", { name: "撤销", exact: true })).toBeDisabled();
     await player.context.setOffline(false);
     await expect(player.page.locator(".connection-banner")).toHaveCount(0);
     await mapReady(player.page);
-    await expect(player.page.locator(".task-subtitle")).toContainText("已确认 1/3");
+    await expect(player.page.locator(".answer-count")).toContainText("已确认 1/3");
     await joinRoom(spectator.page, null, "迟到的朋友");
     await expect(spectator.page.getByRole("heading", { name: "本局旁观", exact: true })).toBeVisible();
     expect(spectatorState.current.you.targets || []).toEqual([]);
@@ -827,5 +950,64 @@ test("thirty seeded participants remain readable across every real screen result
   } finally {
     await screen.evaluate(() => window.__screenSeed?.forEach(client => client.ws.close())).catch(() => {});
     await Promise.all([host.context.close(), screenContext.close()]);
+  }
+});
+
+test("compact answer panel locks pending commands and preserves preview after server rejection", async ({ browser }) => {
+  const host = await mobile(browser);
+  let holdReplies = false;
+  let rejectNextGuess = false;
+  const heldReplies = [];
+  // Proxy the actual room connection. Only timing and one invalid target ID are
+  // injected; acceptance/rejection still comes from the real backend rules.
+  await host.page.routeWebSocket(/\/ws\/[^/]+\/admin(?:\?|$)/, socket => {
+    const server = socket.connectToServer();
+    server.onMessage(message => {
+      if (holdReplies) heldReplies.push(() => socket.send(message));
+      else socket.send(message);
+    });
+    socket.onMessage(message => {
+      const command = JSON.parse(String(message));
+      if (rejectNextGuess && command.type === "guess") {
+        rejectNextGuess = false;
+        server.send(JSON.stringify({ ...command, targetId: "test-invalid-target" }));
+      } else server.send(message);
+    });
+  });
+  try {
+    await createRoom(host.page, "确认状态测试");
+    await host.page.getByRole("button", { name: "我的答题", exact: true }).click();
+    await contribute(host.page, "天坛");
+    await contribute(host.page, "故宫");
+    await host.page.getByRole("button", { name: "房间管理", exact: true }).click();
+    await startRoom(host.page);
+    const point = await mapPoint(host.page);
+    await host.page.touchscreen.tap(point.x, point.y);
+    rejectNextGuess = true;
+    await host.page.getByRole("button", { name: "确认位置", exact: true }).click();
+    await expect(host.page.getByRole("alert")).toContainText("不是你的题目");
+    await expect(host.page.locator(".answer-count")).toContainText("已确认 0/3");
+    await expect(host.page.getByRole("button", { name: "确认位置", exact: true })).toBeEnabled();
+
+    holdReplies = true;
+    await host.page.getByRole("button", { name: "确认位置", exact: true }).click();
+    await expect(host.page.getByRole("button", { name: "正在确认…", exact: true })).toBeDisabled();
+    await expect(host.page.locator(".map-pane")).not.toHaveClass(/clickable/);
+    await expect(host.page.getByRole("button", { name: "取消", exact: true })).toBeDisabled();
+    await expect(host.page.getByRole("button", { name: "房间管理", exact: true })).toBeDisabled();
+    const tabs = host.page.getByRole("group", { name: "选择题目", exact: true }).getByRole("button");
+    for (const tab of await tabs.all()) await expect(tab).toBeDisabled();
+    await expect(host.page.locator(".answer-count")).toContainText("已确认 0/3");
+    await expect.poll(() => heldReplies.length).toBeGreaterThan(0);
+    holdReplies = false;
+    for (const release of heldReplies.splice(0)) release();
+    await expect(host.page.locator(".answer-count")).toContainText("已确认 1/3");
+    await expect(host.page.getByRole("button", { name: /^第2题 / })).toHaveAttribute("aria-pressed", "true");
+    await expect(host.page.getByRole("button", { name: "确认位置", exact: true })).not.toBeVisible();
+    await expect(host.page.getByRole("button", { name: "房间管理", exact: true })).toBeEnabled();
+  } finally {
+    holdReplies = false;
+    for (const release of heldReplies.splice(0)) release();
+    await host.context.close();
   }
 });
